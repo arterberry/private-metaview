@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HLS MetaView - Playback Helper</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+            line-height: 1.5;
+            color: #333;
+        }
+        
+        h1 {
+            font-size: 18px;
+            margin-top: 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .helper-section {
+            margin-bottom: 20px;
+        }
+        
+        .helper-title {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .helper-content {
+            background-color: #f8f8f8;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .common-url {
+            padding: 6px 8px;
+            background-color: #fff;
+            border: 1px solid #ddd;
+            margin-bottom: 5px;
+            cursor: pointer;
+            display: block;
+            width: 100%;
+            text-align: left;
+            border-radius: 3px;
+            box-sizing: border-box;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .common-url:hover {
+            background-color: #f0f0f0;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            font-size: 12px;
+            color: #777;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Playback Helper</h1>
+    
+    <div class="helper-section">
+        <div class="helper-title">Common HLS Test Streams</div>
+        <div class="helper-content">
+            <button class="common-url" data-url="https://d1ns9k5qrxc5w8.cloudfront.net/9bf31c7ff062936a067ca6938984d388/k8s/live/scte35.isml/.m3u8">SCTE-35 Test Stream</button>
+            <button class="common-url" data-url="https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8">Tears of Steel</button>
+            <button class="common-url" data-url="https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8">Sintel</button>
+            <button class="common-url" data-url="https://cph-p2p-msl.akamaized.net/hls/live/2000341/test/master.m3u8">Live Test Stream</button>
+        </div>
+    </div>
+    
+    <div class="helper-section">
+        <div class="helper-title">HLS Troubleshooting Tips</div>
+        <div class="helper-content">
+            <p><strong>Common Issues:</strong></p>
+            <ul>
+                <li>CORS errors: The streaming server must have appropriate CORS headers</li>
+                <li>404 errors: Check that the URL is correct and accessible</li>
+                <li>Buffering issues: May indicate network bandwidth problems</li>
+                <li>Decoding errors: Check if the video codec is supported by your browser</li>
+            </ul>
+        </div>
+    </div>
+    
+    <div class="helper-section">
+        <div class="helper-title">About SCTE-35 Markers</div>
+        <div class="helper-content">
+            <p>SCTE-35 markers are used in HLS streams to indicate:</p>
+            <ul>
+                <li>Ad insertion points</li>
+                <li>Program boundaries</li>
+                <li>Blackout restrictions</li>
+                <li>Other time-sensitive events</li>
+            </ul>
+            <p>Look for #EXT-X-DATERANGE and #EXT-X-CUE-OUT tags in the playlist metadata.</p>
+        </div>
+    </div>
+    
+    <div class="footer">
+        HLS MetaView Helper | Click any stream URL to load it in the main player
+    </div>
+    
+    <!-- Instead of inline script, reference the external script file -->
+    <script src="helper.js"></script>
+</body>
+</html>

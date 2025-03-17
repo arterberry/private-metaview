@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HLS MetaView</title>
+    <link rel="stylesheet" type="text/css" href="styles.css">
+</head>
+<body>
+    <h1>HLS MetaView</h1>
+    <button id="closeButton">Exit</button>
+    
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="video-container">
+                <video id="videoPlayer" controls></video>
+            </div>
+            <div class="metadata-section">
+                <div class="metadata-label"></div>
+                <div id="metadataPanel">
+                    <div id="metadataList"></div>
+                </div>
+                <div class="export-area">
+                    <!-- Placeholder for export button (will be added later) -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="right-panel">
+
+            <div class="controls-section">
+                <div class="controls-label">Controls</div>
+                <div class="input-group">
+                    <input type="text" id="hlsUrl" placeholder="https://d1ns9k5qrxc5w8.cloudfront.net/9bf31c7ff062936a067ca6938984d388/k8s/live/scte35.isml/.m3u8">
+                    <button id="playVideo">Play</button>
+                </div>
+                <div class="helper-link">
+                    <a href="#" id="playbackHelper">Playback Helper</a>
+                </div>
+
+                <div class="resolutions-section">
+                    <div class="resolutions-label">Available Resolutions:</div>
+                    <div id="resolutionList" class="resolution-container"></div>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- Load local HLS.js -->
+    <script src="hls.min.js"></script>
+    <!-- Load popup.js after HLS.js -->
+    <script src="popup.js"></script>
+    <script src="metadata.js"></script>
+</body>
+</html>
