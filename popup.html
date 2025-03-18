@@ -40,6 +40,17 @@
                     <div class="resolutions-label">Available Resolutions:</div>
                     <div id="resolutionList" class="resolution-container"></div>
                 </div>
+
+                <div class="cache-metrics-section">
+                    <div class="cache-metrics-label">Cache Performance:</div>
+                    <div class="cache-graph-container">
+                        <canvas id="cacheHitMissGraph" width="260" height="100"></canvas>
+                        <div class="cache-stats">
+                            <span id="hitRatio">Hit ratio: --</span>
+                            <span id="segmentCount">Segments: 0</span>
+                        </div>
+                    </div>
+                </div>                
             </div>
             
         </div>

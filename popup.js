@@ -25,6 +25,9 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
         console.error("Playback helper link not found");
     }
+
+    // Initialize cache graph
+    initCacheGraph();
 });
 
 // Video playback
@@ -32,10 +35,14 @@ function handlePlayVideo() {
     let url = document.getElementById("hlsUrl").value;
     let video = document.getElementById("videoPlayer");
 
-    if (!url.endsWith(".m3u8")) {
-        alert("Please enter a valid HLS URL (.m3u8)");
-        return;
-    }
+    // const isTestChannelURL = url.includes("/v1/live?") && 
+    //                          (url.includes("k8s-sportsprod") || 
+    //                           url.includes("k8s-sportsqa"));
+
+    // if (!isTestChannelURL && !url.endsWith(".m3u8")) {
+    //     alert("Please enter a valid HLS URL (.m3u8)");
+    //     return;
+    // }
 
     if (typeof Hls !== "undefined" && Hls.isSupported()) {
         // An HLS instance with modified buffer settings
@@ -336,13 +343,61 @@ function addHeadersToMetadata(url, headers) {
     // Create header display text
     let headerText = `Headers for ${filename}:\n`;
 
+    // Check for cache hit/miss
+    let cacheStatus = null;
+
     // Add ALL headers instead of just important ones
     if (headers) {
         // If headers is an object with key-value pairs
         Object.keys(headers).forEach(header => {
             headerText += `${header}: ${headers[header]}\n`;
+            // Look for cache-related headers
+            if (header.toLowerCase() === 'x-cache' ||
+                header.toLowerCase() === 'cf-cache-status' ||
+                header.toLowerCase() === 'x-cache-lookup' ||
+                header.toLowerCase() === 'x-cache-hits' ||
+                header.toLowerCase() === 'age') {
+
+                const value = headers[header].toLowerCase();
+                
+                // Handle Akamai's specific x-cache-hits format (e.g., "0, 0")
+                if (header.toLowerCase() === 'x-cache-hits') {
+                    const hits = value.split(',').map(v => parseInt(v.trim()));
+                    if (hits.some(hit => hit > 0)) {
+                        cacheStatus = true;  // Cache hit
+                    } else {
+                        cacheStatus = false;  // Cache miss
+                    }
+                }
+                // Handle standard cache headers
+                else if (value.includes('hit') ||
+                    (header.toLowerCase() === 'age' && parseInt(value) > 0)) {
+                    cacheStatus = true;  // Cache hit
+                } else if (value.includes('miss') ||
+                    (header.toLowerCase() === 'age' && parseInt(value) === 0)) {
+                    cacheStatus = false;  // Cache miss
+                }
+            }
+            
+            // Also check for Akamai-specific headers that might indicate cache status
+            if (header.toLowerCase() === 'x-cdn' && headers[header].toLowerCase() === 'akamai') {
+                // If we haven't determined cache status yet, look for other Akamai indicators
+                if (cacheStatus === null) {
+                    // Look for x-served-by header to try to determine cache status
+                    const servedBy = headers['x-served-by'] || '';
+                    if (servedBy.toLowerCase().includes('cache-')) {
+                        // This is a heuristic - might need adjustment based on actual Akamai behavior
+                        cacheStatus = servedBy.split(',').length > 1;
+                    }
+                }
+            }
         });
     }
+
+    // Update cache graph if we found a cache status
+    if (cacheStatus !== null && url.includes('.ts')) {
+        updateCacheGraph(cacheStatus);
+    }    
 
     // Add to metadata panel
     addMetadataEntry(headerText);
@@ -484,5 +539,137 @@ function openHelperPopup() {
         helperWindow.focus();
     } else {
         alert("Popup blocked. Please allow popups for this site.");
+    }
+}
+
+// Cache hit/miss tracking
+let cacheData = {
+    hits: 0,
+    misses: 0,
+    total: 0,
+    history: [],  // Array of 1s (hit) and 0s (miss)
+    maxHistory: 20 // Keep track of last 20 segments
+};
+
+// Initialize the cache graph
+function initCacheGraph() {
+    const canvas = document.getElementById('cacheHitMissGraph');
+    if (!canvas || !canvas.getContext) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw the baseline
+    ctx.beginPath();
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.stroke();
+    
+    // Draw the text labels
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#666';
+    ctx.fillText('HIT', 5, 15);
+    ctx.fillText('MISS', 5, canvas.height - 5);
+}
+
+// Update the cache graph with new data
+function updateCacheGraph(isHit) {
+    // Update cache stats
+    if (isHit) {
+        cacheData.hits++;
+    } else {
+        cacheData.misses++;
+    }
+    cacheData.total++;
+    
+    // Add to history (1 for hit, 0 for miss)
+    cacheData.history.push(isHit ? 1 : 0);
+    
+    // Keep history at max length
+    if (cacheData.history.length > cacheData.maxHistory) {
+        cacheData.history.shift();
+    }
+    
+    // Update hit ratio display
+    const hitRatio = cacheData.total > 0 ? 
+        ((cacheData.hits / cacheData.total) * 100).toFixed(1) : 0;
+    
+    const hitRatioElement = document.getElementById('hitRatio');
+    if (hitRatioElement) {
+        hitRatioElement.textContent = `Hit ratio: ${hitRatio}%`;
+    }
+    
+    const segmentCountElement = document.getElementById('segmentCount');
+    if (segmentCountElement) {
+        segmentCountElement.textContent = `Segments: ${cacheData.total}`;
+    }
+    
+    // Draw the graph
+    drawCacheGraph();
+}
+
+// Draw the cache hit/miss graph
+function drawCacheGraph() {
+    const canvas = document.getElementById('cacheHitMissGraph');
+    if (!canvas || !canvas.getContext || cacheData.history.length === 0) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    // Draw the baseline
+    ctx.beginPath();
+    ctx.strokeStyle = '#ccc';
+    ctx.lineWidth = 1;
+    ctx.moveTo(0, height / 2);
+    ctx.lineTo(width, height / 2);
+    ctx.stroke();
+    
+    // Draw the text labels
+    ctx.font = '10px Arial';
+    ctx.fillStyle = '#666';
+    ctx.fillText('HIT', 5, 15);
+    ctx.fillText('MISS', 5, height - 5);
+    
+    // Draw the line graph
+    if (cacheData.history.length > 1) {
+        const dataLength = cacheData.history.length;
+        const stepSize = (width - 40) / (dataLength - 1);
+        
+        // Draw line connecting points
+        ctx.beginPath();
+        ctx.strokeStyle = '#2196F3';  // Blue line
+        ctx.lineWidth = 2;
+        
+        for (let i = 0; i < dataLength; i++) {
+            const x = 30 + (i * stepSize);
+            // If hit (1), draw near top, if miss (0), draw near bottom
+            const y = cacheData.history[i] === 1 ? height * 0.25 : height * 0.75;
+            
+            if (i === 0) {
+                ctx.moveTo(x, y);
+            } else {
+                ctx.lineTo(x, y);
+            }
+        }
+        ctx.stroke();
+        
+        // Draw points
+        for (let i = 0; i < dataLength; i++) {
+            const x = 30 + (i * stepSize);
+            const y = cacheData.history[i] === 1 ? height * 0.25 : height * 0.75;
+            
+            ctx.beginPath();
+            ctx.fillStyle = cacheData.history[i] === 1 ? '#4CAF50' : '#F44336';  // Green for hit, red for miss
+            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.fill();
+        }
     }
 }

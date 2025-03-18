@@ -280,3 +280,35 @@ button#closeButton {
     text-decoration: underline;
     color: #000;
 }
+
+.cache-metrics-section {
+    margin-top: 15px;
+    display: block;
+    width: 100%;
+}
+
+.cache-metrics-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.cache-graph-container {
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    padding: 5px;
+    position: relative;
+}
+
+.cache-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #666;
+    margin-top: 5px;
+}
+
+#cacheHitMissGraph {
+    width: 100%;
+    height: 100px;
+}

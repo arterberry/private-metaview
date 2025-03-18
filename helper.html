@@ -62,11 +62,132 @@
             color: #777;
             text-align: center;
         }
+
+        /* New styles for Test Channels section */
+        .channel-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 5px;
+            align-items: center;
+        }
+
+        .channel-input {
+            flex-grow: 1;
+            padding: 6px 8px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+
+        .go-button {
+            padding: 6px 15px;
+            background-color: #f0f0f0;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .go-button:hover {
+            background-color: #e0e0e0;
+        }
+
+        .input-label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-top: 2px;
+            margin-bottom: 8px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+        }
+
+        .radio-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .select-container {
+            margin-top: -4px;
+            margin-bottom: 5px;
+        }
+        
+        .select-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .cdn-select {
+            padding: 5px;            
+            border-radius: 3px;
+            border: 1px solid #ddd;
+            background-color: #fff;
+            cursor: pointer;
+            min-width: 120px;
+        }
     </style>
 </head>
 <body>
     <h1>Playback Helper</h1>
     
+    <!-- New Test Channels Section -->
+    <div class="helper-section">
+        <div class="helper-title">Test Channels</div>
+        <div class="helper-content">
+            <div class="channel-container">
+                <input type="text" id="channelInput" class="channel-input" placeholder="Enter channel name">
+                <button id="goButton" class="go-button">Go</button>
+            </div>
+            <label class="input-label">Channel</label>
+            
+            <div class="radio-container">
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="regionEast" name="region" value="east" checked>
+                        <label for="regionEast">East</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="regionWest" name="region" value="west">
+                        <label for="regionWest">West</label>
+                    </div>
+                </div>
+                
+                <div class="radio-group">
+                    <div class="radio-option">
+                        <input type="radio" id="envProd" name="env" value="prod" checked>
+                        <label for="envProd">PROD</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="envQa" name="env" value="qa">
+                        <label for="envQa">QA</label>
+                    </div>
+                </div>
+
+                <div class="select-container">
+                    <div class="select-group">
+                        <label for="cdnSelect">CDN:</label>
+                        <select id="cdnSelect" class="cdn-select">
+                            <option value="cf">Cloudfront</option>
+                            <option value="ak">Akamai</option>
+                            <option value="fa">Fastly</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Original Common HLS Test Streams Section -->
     <div class="helper-section">
         <div class="helper-title">Common HLS Test Streams</div>
         <div class="helper-content">
@@ -105,10 +226,9 @@
     </div>
     
     <div class="footer">
-        HLS MetaView Helper | Click any stream URL to load it in the main player
+        HLS MetaView Helper • Click any stream URL to load it in the main player
     </div>
     
-    <!-- Instead of inline script, reference the external script file -->
     <script src="helper.js"></script>
 </body>
 </html>
