@@ -26,6 +26,20 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Playback helper link not found");
     }
 
+    // Setup Admin button event listener (placeholder for now)
+    const adminButton = document.getElementById('adminButton');
+    if (adminButton) {
+        adminButton.addEventListener('click', function () {
+            console.log('Admin button clicked');
+            // Functionality will be added later
+        });
+    } else {
+        console.error("Admin button not found");
+    }    
+
+    // New code: Tab system handling
+    setupTabSystem();
+
     // Initialize cache graph
     initCacheGraph();
 });
@@ -745,4 +759,44 @@ function drawCacheGraph() {
             // ctx.stroke();            
         }
     }
+}
+
+// Function to handle tab switching
+function setupTabSystem() {
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Get the target tab
+            const targetTab = this.getAttribute('data-tab');
+            
+            // Deactivate all tabs
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            tabPanes.forEach(pane => pane.classList.remove('active'));
+            
+            // Activate the selected tab
+            this.classList.add('active');
+            document.getElementById(`${targetTab}-tab`).classList.add('active');
+            
+            // Update any visualizations if needed
+            if (targetTab === 'inspect') {
+                // If we're showing the inspect tab, refresh the cache graph
+                if (typeof drawCacheGraph === 'function') {
+                    drawCacheGraph();
+                }
+            }
+        });
+    });
+    
+    // Placeholder button event listener
+    // const placeholderButton = document.getElementById('placeholderButton');
+    // if (placeholderButton) {
+    //     placeholderButton.addEventListener('click', function() {
+    //         console.log('Placeholder button clicked');
+    //         // You can add functionality here later
+    //     });
+    // } else {
+    //     console.error("Placeholder button not found");
+    // }
 }

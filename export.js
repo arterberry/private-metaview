@@ -119,7 +119,7 @@ document.addEventListener("DOMContentLoaded", function() {
         // In export.js - Update the export button styling
         const exportButton = document.createElement('button');
         exportButton.id = 'exportDataButton';
-        exportButton.textContent = 'Export';
+        exportButton.textContent = 'Export Data + Screen Capture';
         exportButton.style.padding = '8px 12px';
         exportButton.style.background = '#4CAF50'; // Green color (keep as is)
         exportButton.style.color = 'white';
