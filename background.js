@@ -13,8 +13,8 @@ function createNewWindow() {
     chrome.windows.create({
         url: 'popup.html',
         type: 'popup',
-        width: 1287,
-        height: 900,
+        width: 1405,
+        height: 930,
     });
 }
 

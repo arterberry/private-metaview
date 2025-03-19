@@ -82,7 +82,7 @@ function handlePlayVideo() {
                 Levels: ${data.levels.length}
             `;
             
-            // Add information about available quality levels
+            // Information about available quality levels
             data.levels.forEach((level, index) => {
                 manifestInfo += `
                 Level ${index}: ${level.width}x${level.height} @ ${Math.round(level.bitrate/1000)}kbps
@@ -121,7 +121,7 @@ function handlePlayVideo() {
 
        // Monitor for errors
         hls.on(Hls.Events.ERROR, function (event, data) {
-            // Improved error logging
+
             console.error("HLS Error:", {
                 type: data.type,
                 details: data.details,
@@ -130,7 +130,6 @@ function handlePlayVideo() {
                 url: data.frag ? data.frag.url : (data.context ? data.context.url : 'unknown')
             });
 
-            // Create a more helpful error message for the UI
             let errorMessage = `HLS Error: ${data.details}`;
             if (data.response) {
                 errorMessage += ` - Status: ${data.response.code}`;
@@ -145,7 +144,6 @@ function handlePlayVideo() {
                 addMetadataEntry(`FATAL ERROR: ${data.details}`, true);
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                        // Try to recover network error
                         console.log("Fatal network error encountered, trying to recover");
                         hls.startLoad();
                         break;
@@ -154,7 +152,6 @@ function handlePlayVideo() {
                         hls.recoverMediaError();
                         break;
                     default:
-                        // Cannot recover
                         hls.destroy();
                         break;
                 }
@@ -163,7 +160,7 @@ function handlePlayVideo() {
             }
         });
 
-        // Load source and attach to video
+        // Load source / video
         hls.loadSource(url);
         parseAndDisplayResolutions(url);
         hls.attachMedia(video);
@@ -197,27 +194,26 @@ function handlePlayVideo() {
 
         // Monitor for buffer stalling
         hls.on(Hls.Events.ERROR, function (event, data) {
-            // Check if the error is related to buffer stalling
             if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
                 bufferingIndicator.style.display = 'block';
                 addMetadataEntry('Playback stalled due to insufficient buffer', true);
             }
         });
         
-        // Also add a specific listener for buffer stalling
+        // CHECK: Specific listener for buffer stalling
         hls.on(Hls.Events.BUFFER_STALLING, function () {
             bufferingIndicator.style.display = 'block';
             addMetadataEntry('Buffer stalling detected', true);
         });
 
-        // Monitor for buffering completion
+        // CHECK: for buffering completion
         hls.on(Hls.Events.BUFFER_APPENDED, function () {
             if (video.readyState >= 3) { // HAVE_FUTURE_DATA or higher
                 bufferingIndicator.style.display = 'none';
             }
         });
 
-        // Also monitor video element buffering states
+        // CHECK: video element buffering states
         video.addEventListener('waiting', function () {
             bufferingIndicator.style.display = 'block';
         });
@@ -235,8 +231,14 @@ function handlePlayVideo() {
     }
 }
 
-// Helper function to add entries to metadata list
+// Helper function to add entries to metadata list with a buffer
 function addMetadataEntry(text, isError = false, isHighlighted = false) {
+    // If metadataBuffer is available, use it (as defined in metadata.js)
+    if (window.metadataBuffer && typeof window.metadataBuffer.addEntry === 'function') {
+        return window.metadataBuffer.addEntry(text, isError, isHighlighted);
+    }
+    
+    // Fallback to original implementation if buffer not available
     let metadataList = document.getElementById("metadataList");
     let entry = document.createElement("div");
     
@@ -280,10 +282,7 @@ function addMetadataEntry(text, isError = false, isHighlighted = false) {
 
 // Custom loader function to capture response headers
 function createCustomLoader(Hls) {
-    // Get the default loader class
     const XhrLoader = Hls.DefaultConfig.loader;
-
-    // Create a custom loader class
     class HeaderCaptureLoader extends XhrLoader {
         constructor(config) {
             super(config);
@@ -295,7 +294,7 @@ function createCustomLoader(Hls) {
 
                 // Override success callback to capture headers
                 callbacks.onSuccess = function (response, stats, context, xhr) {
-                    // This is where we can access the headers
+                    // NOTE: access the headers
                     if (xhr && xhr.getAllResponseHeaders) {
 
                         // Debugging
@@ -321,11 +320,9 @@ function createCustomLoader(Hls) {
                             addHeadersToMetadata(context.url, headers);
                         }
                     }
-
                     // Call original callback
                     originalOnSuccess(response, stats, context, xhr);
                 };
-
                 // Call the original load method
                 load(context, config, callbacks);
             };
@@ -406,7 +403,22 @@ function addHeadersToMetadata(url, headers) {
 // Function to fetch and parse manifests for SCTE and other metadata
 async function fetchAndParseManifest(url) {
     try {
-        const response = await fetch(url);
+        // Add a timeout to prevent long-hanging requests
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        
+        const response = await fetch(url, { 
+            signal: controller.signal,
+            // Add mode and credentials options for CORS
+            mode: 'cors',
+            credentials: 'omit',
+            headers: {
+                'Accept': '*/*'
+            }
+        });
+        
+        clearTimeout(timeoutId);
+        
         const headers = {};
         
         // Get response headers
@@ -467,15 +479,32 @@ async function fetchAndParseManifest(url) {
         }
     } catch (error) {
         console.error("Error fetching manifest:", error);
-        addMetadataEntry(`Error fetching manifest ${url}: ${error.message}`, true);
+        
+        // Provide more detailed error message
+        let errorMessage = `Error fetching manifest ${url}: `;
+        
+        if (error.name === 'AbortError') {
+            errorMessage += 'Request timed out after 10 seconds';
+        } else if (error.message.includes('NetworkError')) {
+            errorMessage += 'Network error (possibly CORS related). This is common and non-critical for cross-origin requests.';
+        } else {
+            errorMessage += error.message;
+        }
+        
+        // Mark as non-critical error if it's likely a CORS issue with a third-party URL
+        const isCORSLikelyIssue = !url.includes(window.location.hostname) && 
+                                 (error.message.includes('Failed to fetch') || 
+                                  error.message.includes('NetworkError'));
+        
+        addMetadataEntry(errorMessage, !isCORSLikelyIssue);
     }
 }
 
-// Function to fetch metadata (placeholder - you may need to implement this)
-function fetchMetadata(url) {
-    console.log("Fetching metadata for:", url);
-    // Implementation depends on what metadata you want to fetch
-}
+// // Function to fetch metadata (placeholder - you may need to implement this)
+// function fetchMetadata(url) {
+//     console.log("Fetching metadata for:", url);
+//     // Implementation depends on what metadata you want to fetch
+// }
 
 // Function to parse and display available resolutions
 function parseAndDisplayResolutions(manifestUrl) {
@@ -563,17 +592,51 @@ function initCacheGraph() {
     
     // Draw the baseline
     ctx.beginPath();
-    ctx.strokeStyle = '#ccc';
+    ctx.strokeStyle = '#ccc';  // Changed from #666 to #ccc to match drawCacheGraph
     ctx.lineWidth = 1;
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.stroke();
+
+    addTextLabelsToGraph();
+}
+
+function addTextLabelsToGraph() {
+    const graphContainer = document.querySelector('.cache-graph-container');
+
+    if (getComputedStyle(graphContainer).position === 'static') {
+        graphContainer.style.position = 'relative';
+    }
+
+    // Remove existing labels if they exist
+    const existingHitLabel = document.getElementById('hitLabel');
+    const existingMissLabel = document.getElementById('missLabel');
+    if (existingHitLabel) existingHitLabel.remove();
+    if (existingMissLabel) existingMissLabel.remove();
     
-    // Draw the text labels
-    ctx.font = '10px Arial';
-    ctx.fillStyle = '#666';
-    ctx.fillText('HIT', 5, 15);
-    ctx.fillText('MISS', 5, canvas.height - 5);
+    // Add HIT label
+    const hitLabel = document.createElement('div');
+    hitLabel.textContent = 'HIT';
+    hitLabel.id = 'hitLabel';
+    hitLabel.style.position = 'absolute';
+    hitLabel.style.top = '10px';
+    hitLabel.style.left = '10px';
+    hitLabel.style.fontSize = '10px';
+    hitLabel.style.fontFamily = 'Arial, sans-serif';
+    hitLabel.style.color = '#666';
+    graphContainer.appendChild(hitLabel);
+    
+    // Add MISS label
+    const missLabel = document.createElement('div');
+    missLabel.textContent = 'MISS';
+    missLabel.id = 'missLabel';
+    missLabel.style.position = 'absolute';
+    missLabel.style.bottom = '20px';
+    missLabel.style.left = '10px';
+    missLabel.style.fontSize = '10px';
+    missLabel.style.fontFamily = 'Arial, sans-serif';
+    missLabel.style.color = '#666';
+    graphContainer.appendChild(missLabel);
 }
 
 // Update the cache graph with new data
@@ -594,10 +657,13 @@ function updateCacheGraph(isHit) {
         cacheData.history.shift();
     }
     
-    // Update hit ratio display
-    const hitRatio = cacheData.total > 0 ? 
-        ((cacheData.hits / cacheData.total) * 100).toFixed(1) : 0;
+    // Make cacheData available globally for our exporter
+    window.cacheData = cacheData;
     
+    // Update hit ratio display
+    const hitRatio = cacheData.total > 0 ?
+        ((cacheData.hits / cacheData.total) * 100).toFixed(1) : 0;
+
     const hitRatioElement = document.getElementById('hitRatio');
     if (hitRatioElement) {
         hitRatioElement.textContent = `Hit ratio: ${hitRatio}%`;
@@ -627,16 +693,13 @@ function drawCacheGraph() {
     // Draw the baseline
     ctx.beginPath();
     ctx.strokeStyle = '#ccc';
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1;  // Changed from 0.05 to 1 to match initCacheGraph
     ctx.moveTo(0, height / 2);
     ctx.lineTo(width, height / 2);
     ctx.stroke();
     
-    // Draw the text labels
-    ctx.font = '10px Arial';
-    ctx.fillStyle = '#666';
-    ctx.fillText('HIT', 5, 15);
-    ctx.fillText('MISS', 5, height - 5);
+    // Add the labels
+    addTextLabelsToGraph();
     
     // Draw the line graph
     if (cacheData.history.length > 1) {
@@ -646,7 +709,7 @@ function drawCacheGraph() {
         // Draw line connecting points
         ctx.beginPath();
         ctx.strokeStyle = '#2196F3';  // Blue line
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 1;
         
         for (let i = 0; i < dataLength; i++) {
             const x = 30 + (i * stepSize);
@@ -668,8 +731,18 @@ function drawCacheGraph() {
             
             ctx.beginPath();
             ctx.fillStyle = cacheData.history[i] === 1 ? '#4CAF50' : '#F44336';  // Green for hit, red for miss
-            ctx.arc(x, y, 4, 0, Math.PI * 2);
+            ctx.arc(x, y, 2, 0, Math.PI * 2);
             ctx.fill();
+
+            // // Draw small vertical line (pip)
+            // ctx.beginPath();
+            // ctx.strokeStyle = isHit ? '#4CAF50' : '#F44336';  // Green for hit, red for miss
+            // ctx.lineWidth = 2;  // Width of the vertical line
+            
+            // // For a vertical line: draw from 3px above to 3px below the point
+            // ctx.moveTo(x, y - 3);
+            // ctx.lineTo(x, y + 3);
+            // ctx.stroke();            
         }
     }
 }

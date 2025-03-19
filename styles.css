@@ -19,7 +19,6 @@ h1 {
 }
 
 /* Apply to section labels */
-.controls-label,
 .metadata-label {
     font-family: 'Roboto Thin', Arial, sans-serif;
 }
@@ -39,8 +38,8 @@ body {
 }
 
 html, body {
-    min-width: 1287px;
-    min-height: 900px;
+    min-width: 1405px;
+    min-height: 930px;
 }
 
 h1 {
@@ -72,14 +71,16 @@ h1 {
     flex-direction: column;
 }
 
+/* Also adjust the video container to give more space to metadata */
 .video-container {
     border: 1px solid #000;
-    margin-bottom: 15px;
+    background-color: #000;
+    margin-bottom: 10px; /* Reduced from 15px */
     position: relative;
     aspect-ratio: 16/9;
-    height: 60%;
-    min-height: 400px;
-    flex-shrink: 0; /* Prevent video container from shrinking */
+    height: 55%; /* Reduced from 60% */
+    min-height: 380px; /* Reduced from 400px */
+    flex-shrink: 0;
 }
 
 video {
@@ -148,10 +149,10 @@ button#closeButton {
     display: flex;
     flex-direction: column;
     position: relative;
-    padding-bottom: 75px; /* Space for export button */
-    height: calc(40% - 65px); /* Fixed height calculation */
-    min-height: 150px;
-    max-height: calc(40% - 65px); /* Maximum height constraint */
+    padding-bottom: 40px;
+    height: calc(50% - 40px); 
+    min-height: 90px;
+    max-height: calc(40% - 40px);
 }
 
 .metadata-label {
@@ -188,12 +189,15 @@ button#closeButton {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 50px;
+    height: 35px; /* Further reduced from 40px */
     display: flex;
     align-items: center;
     justify-content: flex-end;
     padding: 0 10px;
-    flex-shrink: 0; /* Prevent export area from shrinking */
+    flex-shrink: 0;
+    margin-top: 20px;;
+    /* background-color: #f5f5f5; Light background to distinguish it */
+    /* border-top: 1px solid #e0e0e0; /* Add subtle border */
 }
 
 /* Add scrollbar styling */
@@ -248,12 +252,12 @@ button#closeButton {
 }
 
 .resolution-container {
-    min-height: 15px;
-    max-height: 80px;
+    min-height: 125px; /* 15px */
+    max-height: 125px; /* 80px */
     overflow-y: auto;
     font-size: 12px;
     color: #333;
-    width: 100%;
+    width: 97%; /* 100% */
     display: block;
     border: 1px solid #eee;
     padding: 5px;
@@ -303,12 +307,50 @@ button#closeButton {
 .cache-stats {
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
-    color: #666;
+    font-size:11px;
+    color: #000;
     margin-top: 5px;
 }
 
 #cacheHitMissGraph {
     width: 100%;
     height: 100px;
+}
+
+/* Add this to your styles.css file */
+/* Target the HIT and MISS labels specifically */
+/* #cacheHitMissGraph text,
+/* .hit-label,  */
+/* .miss-label { */
+    /* font-family: Arial, sans-serif; Match the font used in the UI */
+    /* font-size: 9px; Match the size of the ratio text */
+    /* font-weight: normal; Normal weight like ratio text */
+    /* fill: #000; Similar color to the ratio text */
+    /* color: #000; For non-SVG elements */
+/* } */
+
+.graph-label {
+    position: absolute;
+    font-size: 10px;
+    font-family: Arial, sans-serif;
+    color: #666;
+}
+
+.hit-label {
+    top: 10px;
+    left: 10px;
+}
+
+.miss-label {
+    bottom: 20px;
+    left: 10px;
+}
+
+/* If the HIT/MISS text is drawn on canvas, modify the drawing function in popup.js */
+
+/* Make the export buttons more visible */
+button#exportDataButton, button#clearDataButton {
+    height: 28px; /* Explicit height */
+    line-height: 1; /* Proper line height */
+    font-size: 12px; /* Slightly smaller font */
 }
