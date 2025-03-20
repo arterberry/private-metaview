@@ -9,11 +9,39 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("Close button not found");
     }
 
+    // Initialize TTL display
+    const cacheTtlDisplay = document.getElementById('cacheTtlDisplay');
+    if (cacheTtlDisplay) {
+        cacheTtlDisplay.innerHTML = "No TTL information available";
+    }
+
     const playButton = document.getElementById("playVideo");
     if (playButton) {
+        // First, save any existing onclick handler
+        const originalHandler = playButton.onclick;
+        
+        // Clear the onclick property to avoid duplicate execution
+        playButton.onclick = null;
+        
+        // Add event listener for resetting TTL info
+        playButton.addEventListener("click", function() {
+            // Reset TTL info
+            latestTTLInfo = { hasDirectives: false };
+            const cacheTtlDisplay = document.getElementById('cacheTtlDisplay');
+            if (cacheTtlDisplay) {
+                cacheTtlDisplay.innerHTML = "No TTL information available";
+            }
+        });
+        
+        // Add event listener for the main playback function
         playButton.addEventListener("click", handlePlayVideo);
-    } else {
-        console.error("Play button not found");
+        
+        // If there was an original onclick handler, add it as another event listener
+        if (originalHandler) {
+            playButton.addEventListener("click", function(event) {
+                originalHandler.call(this, event);
+            });
+        }
     }
 
     const helperLink = document.getElementById("playbackHelper");
@@ -401,14 +429,25 @@ function addHeadersToMetadata(url, headers) {
                         cacheStatus = servedBy.split(',').length > 1;
                     }
                 }
-            }
+            }        
         });
     }
 
     // Update cache graph if we found a cache status
     if (cacheStatus !== null && url.includes('.ts')) {
         updateCacheGraph(cacheStatus);
-    }    
+    }
+    
+    // Add TTL extraction here - OUTSIDE the loop
+    if (url.includes('.ts') || url.includes('.m4s') || url.includes('.m3u8')) {
+        const ttlInfo = extractTTLInfo(headers);
+        if (ttlInfo.hasDirectives) {
+            // Update the latest TTL info
+            latestTTLInfo = ttlInfo;
+            // Update the display
+            updateCacheTTLDisplay(ttlInfo);
+        }
+    }
 
     // Add to metadata panel
     addMetadataEntry(headerText);
@@ -800,3 +839,131 @@ function setupTabSystem() {
     //     console.error("Placeholder button not found");
     // }
 }
+
+// Extracts TTL information from headers
+function extractTTLInfo(headers) {
+    const ttlInfo = {
+        cacheControl: null,
+        expires: null,
+        age: null,
+        maxAge: null,
+        hasDirectives: false
+    };
+    
+    // Check for Cache-Control header
+    if (headers['cache-control']) {
+        ttlInfo.cacheControl = headers['cache-control'];
+        ttlInfo.hasDirectives = true;
+        
+        // Extract max-age if present
+        const maxAgeMatch = headers['cache-control'].match(/max-age=(\d+)/i);
+        if (maxAgeMatch && maxAgeMatch[1]) {
+            ttlInfo.maxAge = parseInt(maxAgeMatch[1]);
+        }
+    }
+    
+    // Check for Expires header
+    if (headers['expires']) {
+        ttlInfo.expires = headers['expires'];
+        ttlInfo.hasDirectives = true;
+    }
+    
+    // Check for Age header
+    if (headers['age']) {
+        ttlInfo.age = parseInt(headers['age']);
+        ttlInfo.hasDirectives = true;
+    }
+    
+    return ttlInfo;
+}
+
+// Formats TTL information for display
+function formatTTLDisplay(ttlInfo) {
+    if (!ttlInfo.hasDirectives) {
+        return "No cache TTL information available";
+    }
+    
+    let displayHtml = '';
+    
+    // Format max-age if available
+    if (ttlInfo.maxAge !== null) {
+        const formatTime = (seconds) => {
+            if (seconds < 60) return `${seconds} seconds`;
+            if (seconds < 3600) return `${Math.floor(seconds / 60)} minutes`;
+            if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours`;
+            return `${Math.floor(seconds / 86400)} days`;
+        };
+        
+        displayHtml += `<div class="ttl-info">
+            <span>Max Age:</span>
+            <span class="ttl-value">${formatTime(ttlInfo.maxAge)}</span>
+        </div>`;
+    }
+    
+    // Format age if available
+    if (ttlInfo.age !== null) {
+        displayHtml += `<div class="ttl-info">
+            <span>Current Age:</span>
+            <span class="ttl-value">${ttlInfo.age} seconds</span>
+        </div>`;
+    }
+    
+    // Format remaining time if both max-age and age are available
+    if (ttlInfo.maxAge !== null && ttlInfo.age !== null) {
+        const remaining = Math.max(0, ttlInfo.maxAge - ttlInfo.age);
+        displayHtml += `<div class="ttl-info">
+            <span>Remaining TTL:</span>
+            <span class="ttl-value">${remaining} seconds</span>
+        </div>`;
+    }
+    
+    // Format expires if available
+    if (ttlInfo.expires) {
+        try {
+            const expiresDate = new Date(ttlInfo.expires);
+            const now = new Date();
+            const diff = (expiresDate - now) / 1000; // in seconds
+            
+            displayHtml += `<div class="ttl-info">
+                <span>Expires:</span>
+                <span class="ttl-value">${expiresDate.toLocaleTimeString()} (${diff > 0 ? 'in' : 'expired'} ${Math.abs(Math.round(diff))}s)</span>
+            </div>`;
+        } catch (e) {
+            // Handle invalid date format
+            displayHtml += `<div class="ttl-info">
+                <span>Expires:</span>
+                <span class="ttl-value">${ttlInfo.expires}</span>
+            </div>`;
+        }
+    }
+    
+    // Show raw cache-control directives in a horizontal row
+    if (ttlInfo.cacheControl) {
+        const directives = ttlInfo.cacheControl.split(',').map(d => d.trim());
+        
+        displayHtml += `<div class="ttl-info">
+            <span>Directives:</span>
+            <span class="ttl-directives-container">`;
+            
+        directives.forEach(directive => {
+            displayHtml += `<span class="ttl-directive">${directive}</span>`;
+        });
+        
+        displayHtml += `</span></div>`;
+    }
+    
+    return displayHtml;
+}
+
+// Update the Cache TTL display
+function updateCacheTTLDisplay(ttlInfo) {
+    const cacheTtlDisplay = document.getElementById('cacheTtlDisplay');
+    if (cacheTtlDisplay) {
+        cacheTtlDisplay.innerHTML = formatTTLDisplay(ttlInfo);
+    }
+}
+
+// Store the latest TTL information
+let latestTTLInfo = {
+    hasDirectives: false
+};

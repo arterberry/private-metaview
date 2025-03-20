@@ -499,3 +499,65 @@ button#exportDataButton, button#clearDataButton {
 .tab-content {
     flex-grow: 1;
 }
+
+/* Add these styles to styles.css */
+.cache-ttl-section {
+    margin-top: 15px;
+    display: block;
+    width: 100%;
+}
+
+.cache-ttl-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.cache-ttl-container {
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    padding: 10px;
+    font-size: 11px;
+    color: #333;
+    min-height: 15px;
+}
+
+/* Updated styling for the TTL section */
+.ttl-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    align-items: flex-start;  /* Changed from center to flex-start for better alignment with wrapped content */
+}
+
+.ttl-value {
+    font-family: monospace;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #1976D2;
+    text-align: right;
+    max-width: 60%;  /* Prevent values from pushing labels too far left */
+}
+
+.ttl-directive {
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 2px 5px;
+    margin-right: 5px;
+    margin-bottom: 3px;
+    display: inline-block;
+    font-family: monospace;
+    font-size: 11px;
+    color: #1976D2;
+    font-weight: bold;
+}
+
+.ttl-directives-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    max-width: 60%;  /* Match the width of ttl-value */
+}

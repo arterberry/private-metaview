@@ -32,6 +32,7 @@ const exportModule = {
             url: document.getElementById("hlsUrl")?.value || "unknown",
             metadata: [],
             cacheMetrics: {},
+            cacheTTL: window.latestTTLInfo || { hasDirectives: false },
             resolutions: this.captureResolutions(),
             streamInfo: this.captureStreamInfo()
         };
