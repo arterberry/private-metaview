@@ -25,7 +25,7 @@
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js"],
+			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js"],
 			"matches": ["<all_urls>"]
 		}
 	],

@@ -561,3 +561,101 @@ button#exportDataButton, button#clearDataButton {
     justify-content: flex-end;
     max-width: 60%;  /* Match the width of ttl-value */
 }
+
+/* SCTE-35 / Ad Tracking Section */
+.scte-section {
+    margin-top: 15px;
+    display: block;
+    width: 100%;
+}
+
+.scte-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.scte-container {
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    padding: 10px;
+    font-size: 11px;
+    color: #333;
+    min-height: 15px;
+}
+
+.ad-graph-container {
+    margin-top: 5px;
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    padding: 5px;
+    position: relative;
+}
+
+.ad-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #000;
+    margin-top: 5px;
+}
+
+.scte-marker {
+    font-family: monospace;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 2px 5px;
+    margin-right: 5px;
+    margin-bottom: 3px;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.ad-marker {
+    color: #2ecc71; 
+}
+
+.content-marker {
+    color: #e74c3c; 
+}
+
+.scte-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    align-items: flex-start;
+}
+
+.scte-value {
+    font-family: monospace;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #1976D2;
+    text-align: right;
+    max-width: 60%;
+}
+
+/* Explain link container at bottom of section */
+.explain-link-container {
+    margin-top: 5px;
+    text-align: left;
+}
+
+.explain-link {
+    font-size: 11px;
+    font-weight: normal;
+}
+
+.explain-link a {
+    color: #555;
+    text-decoration: none;
+}
+
+.explain-link a:hover {
+    text-decoration: underline;
+    color: #000;
+}

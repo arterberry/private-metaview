@@ -63,13 +63,27 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     } else {
         console.error("Admin button not found");
-    }    
+    }
+    
+    // Setup SCTE explainer link
+    const scteExplainer = document.getElementById("scteExplainer");
+    if (scteExplainer) {
+        scteExplainer.addEventListener("click", function (e) {
+            e.preventDefault();
+            openScteExplainer();
+        });
+    } else {
+        console.error("SCTE explainer link not found");
+    }
 
     // New code: Tab system handling
     setupTabSystem();
 
     // Initialize cache graph
     initCacheGraph();
+
+    // Initialize ad ratio graph
+    initAdRatioGraph();
 });
 
 // Video playback
@@ -495,20 +509,33 @@ async function fetchAndParseManifest(url) {
         // Look for SCTE markers and other important tags
         const scteLines = [];
         const otherMetadata = [];
-        
+
+        // Get current video time if available
+        const videoElement = document.getElementById('videoPlayer');
+        const currentTime = videoElement ? videoElement.currentTime : 0;
+
+        let foundScteMarkers = false;
+
         text.split('\n').forEach(line => {
             // Check for SCTE-35 related tags
-            if (line.includes('SCTE') || 
-                line.includes('CUE-OUT') || 
-                line.includes('CUE-IN') || 
+            if (line.includes('SCTE') ||
+                line.includes('CUE-OUT') ||
+                line.includes('CUE-IN') ||
                 line.includes('DATERANGE') ||
                 line.includes('MARKER')) {
+
                 scteLines.push(line);
+
+                // Process for SCTE tracking
+                const newMarkerProcessed = processSCTEMarker(line, currentTime);
+                if (newMarkerProcessed) {
+                    foundScteMarkers = true;
+                }
             }
             // Capture other metadata tags
-            else if (line.startsWith('#EXT') && 
-                    !line.startsWith('#EXTINF') && 
-                    !line.startsWith('#EXT-X-BYTERANGE')) {
+            else if (line.startsWith('#EXT') &&
+                !line.startsWith('#EXTINF') &&
+                !line.startsWith('#EXT-X-BYTERANGE')) {
                 otherMetadata.push(line);
             }
         });
@@ -801,6 +828,7 @@ function drawCacheGraph() {
 }
 
 // Function to handle tab switching
+// Update existing setupTabSystem function
 function setupTabSystem() {
     const tabButtons = document.querySelectorAll('.tab-button');
     const tabPanes = document.querySelectorAll('.tab-pane');
@@ -824,20 +852,14 @@ function setupTabSystem() {
                 if (typeof drawCacheGraph === 'function') {
                     drawCacheGraph();
                 }
+                
+                // Also refresh the ad ratio graph
+                if (typeof updateAdRatioGraph === 'function') {
+                    updateAdRatioGraph();
+                }
             }
         });
     });
-    
-    // Placeholder button event listener
-    // const placeholderButton = document.getElementById('placeholderButton');
-    // if (placeholderButton) {
-    //     placeholderButton.addEventListener('click', function() {
-    //         console.log('Placeholder button clicked');
-    //         // You can add functionality here later
-    //     });
-    // } else {
-    //     console.error("Placeholder button not found");
-    // }
 }
 
 // Extracts TTL information from headers
@@ -967,3 +989,303 @@ function updateCacheTTLDisplay(ttlInfo) {
 let latestTTLInfo = {
     hasDirectives: false
 };
+
+// Store SCTE-35 tracking data
+let scteData = {
+    markers: [],
+    adCuePoints: [],
+    contentCuePoints: [],
+    adDuration: 0,
+    contentDuration: 0,
+    adCount: 0,
+    adCompletionRate: 100,
+    lastUpdate: 0
+};
+
+// Initialize the ad ratio graph
+function initAdRatioGraph() {
+    const canvas = document.getElementById('adRatioGraph');
+    if (!canvas || !canvas.getContext) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Draw placeholder text
+    ctx.fillStyle = '#999';
+    ctx.font = '10px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('No ad markers detected', canvas.width / 2, canvas.height / 2);
+}
+
+// Update the ad ratio graph
+function updateAdRatioGraph() {
+    const canvas = document.getElementById('adRatioGraph');
+    if (!canvas || !canvas.getContext) return;
+    
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width;
+    const height = canvas.height;
+    
+    // Clear the canvas
+    ctx.clearRect(0, 0, width, height);
+    
+    if (scteData.adDuration === 0 && scteData.contentDuration === 0) {
+        // Draw placeholder text
+        ctx.fillStyle = '#999';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('No ad markers detected', width / 2, height / 2);
+        return;
+    }
+    
+    // Calculate ratio
+    const totalDuration = scteData.adDuration + scteData.contentDuration;
+    const adRatio = totalDuration > 0 ? (scteData.adDuration / totalDuration) : 0;
+
+    // Draw content portion (red)
+    ctx.fillStyle = '#e74c3c';
+    ctx.fillRect(0, 0, width * (1 - adRatio), height);
+
+    // Draw ad portion (green)
+    ctx.fillStyle = '#2ecc71';
+    ctx.fillRect(width * (1 - adRatio), 0, width * adRatio, height);
+    
+    // Draw divider line
+    if (adRatio > 0 && adRatio < 1) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 2;
+        ctx.moveTo(width * (1 - adRatio), 0);
+        ctx.lineTo(width * (1 - adRatio), height);
+        ctx.stroke();
+    }
+    
+    // Draw labels
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 10px Arial';
+    
+    // Content label (if large enough section)
+    if (adRatio < 0.9) {
+        ctx.textAlign = 'left';
+        ctx.fillText('CONTENT', 5, height / 2 + 4);
+    }
+
+    // Ad label (if large enough section)
+    if (adRatio > 0.1) {
+        ctx.textAlign = 'right';
+        ctx.fillText('ADS', width - 5, height / 2 + 4);
+    }
+    
+    // Update ad ratio display
+    const adRatioElement = document.getElementById('adRatio');
+    if (adRatioElement) {
+        adRatioElement.textContent = `Ad Ratio: ${(adRatio * 100).toFixed(1)}%`;
+    }
+    
+    // Update ad count display
+    const adCountElement = document.getElementById('adCount');
+    if (adCountElement) {
+        adCountElement.textContent = `Ads: ${scteData.adCount} (${scteData.adCompletionRate}% completed)`;
+    }
+}
+
+// Process SCTE-35 marker
+function processSCTEMarker(marker, currentTime) {
+    // Skip if this is a duplicate marker (based on time)
+    if (scteData.markers.some(m => m.time === currentTime && m.marker === marker)) {
+        return false;
+    }
+    
+    // Parse the marker type
+    let markerType = 'unknown';
+    let duration = 0;
+    
+    // Extract type and duration from the marker
+    if (marker.includes('CUE-OUT')) {
+        markerType = 'ad-start';
+        // Try to extract duration if available (e.g., #EXT-X-CUE-OUT:30)
+        const durationMatch = marker.match(/CUE-OUT:(\d+)/);
+        if (durationMatch) {
+            duration = parseInt(durationMatch[1], 10);
+        }
+    } else if (marker.includes('CUE-IN')) {
+        markerType = 'ad-end';
+    } else if (marker.includes('DATERANGE') && marker.includes('DURATION')) {
+        // Extract information from DATERANGE tag
+        const durationMatch = marker.match(/DURATION=(\d+(?:\.\d+)?)/);
+        if (durationMatch) {
+            duration = parseFloat(durationMatch[1]);
+        }
+        
+        if (marker.includes('SCTE35-OUT')) {
+            markerType = 'ad-start';
+        } else if (marker.includes('SCTE35-IN')) {
+            markerType = 'ad-end';
+        }
+    }
+    
+    // Add to markers list
+    scteData.markers.push({
+        time: currentTime,
+        marker: marker,
+        type: markerType,
+        duration: duration
+    });
+    
+    // Update ad/content tracking
+    updateAdTracking(markerType, duration, currentTime);
+    
+    // Return true if we processed a new marker
+    return true;
+}
+
+// Update ad tracking data
+function updateAdTracking(markerType, duration, currentTime) {
+    // Handle ad start marker
+    if (markerType === 'ad-start') {
+        scteData.adCuePoints.push({
+            startTime: currentTime,
+            duration: duration,
+            endTime: duration ? currentTime + duration : null,
+            completed: false
+        });
+        scteData.adCount++;
+        
+        // If duration is available, add to ad duration total
+        if (duration) {
+            scteData.adDuration += duration;
+        }
+    }
+    
+    // Handle ad end marker
+    else if (markerType === 'ad-end') {
+        // Find the most recent uncompleted ad
+        const uncompleted = scteData.adCuePoints.filter(ad => !ad.completed);
+        if (uncompleted.length > 0) {
+            const lastAd = uncompleted[uncompleted.length - 1];
+            lastAd.completed = true;
+            
+            // If we didn't know the duration before, calculate it now
+            if (!lastAd.duration && lastAd.startTime) {
+                const calculatedDuration = currentTime - lastAd.startTime;
+                lastAd.duration = calculatedDuration;
+                lastAd.endTime = currentTime;
+                
+                // Add to total ad duration
+                scteData.adDuration += calculatedDuration;
+            }
+        }
+    }
+    
+    // Calculate ad completion rate
+    const completedAds = scteData.adCuePoints.filter(ad => ad.completed).length;
+    scteData.adCompletionRate = scteData.adCount > 0 ? 
+        Math.round((completedAds / scteData.adCount) * 100) : 100;
+    
+    // Calculate content duration (rough estimate based on gaps between ads)
+    // This is a simplified approach - in reality, you'd need more accurate timing
+    if (scteData.adCuePoints.length >= 2) {
+        scteData.contentDuration = 0;
+        for (let i = 1; i < scteData.adCuePoints.length; i++) {
+            const prevAdEnd = scteData.adCuePoints[i-1].endTime || 0;
+            const currAdStart = scteData.adCuePoints[i].startTime || 0;
+            
+            if (prevAdEnd > 0 && currAdStart > prevAdEnd) {
+                scteData.contentDuration += (currAdStart - prevAdEnd);
+            }
+        }
+    }
+    
+    // Update the UI
+    updateScteDisplay();
+    updateAdRatioGraph();
+}
+
+// Update the SCTE display
+function updateScteDisplay() {
+    const scteDisplay = document.getElementById('scteDisplay');
+    if (!scteDisplay) return;
+    
+    if (scteData.markers.length === 0) {
+        scteDisplay.innerHTML = "No SCTE-35 markers detected";
+        return;
+    }
+    
+    let displayHtml = '';
+    
+    // Add ad break count and completion rate
+    displayHtml += `<div class="scte-info">
+        <span>Ad Breaks:</span>
+        <span class="scte-value">${scteData.adCount} (${scteData.adCompletionRate}% complete)</span>
+    </div>`;
+    
+    // Add estimated durations
+    displayHtml += `<div class="scte-info">
+        <span>Est. Ad Time:</span>
+        <span class="scte-value">${scteData.adDuration.toFixed(1)}s</span>
+    </div>`;
+    
+    // Add ad to content ratio if we have both
+    if (scteData.adDuration > 0 && scteData.contentDuration > 0) {
+        const ratio = scteData.adDuration / scteData.contentDuration;
+        displayHtml += `<div class="scte-info">
+            <span>Ad:Content Ratio:</span>
+            <span class="scte-value">1:${(1/ratio).toFixed(1)}</span>
+        </div>`;
+    }
+    
+    // Add the most recent markers (limited to last 3)
+    displayHtml += `<div class="scte-info" style="margin-top: 5px;">
+        <span>Recent Markers:</span>
+        <div style="text-align: right;">`;
+    
+    const recentMarkers = scteData.markers.slice(-3);
+    recentMarkers.forEach(marker => {
+        const markerClass = marker.type === 'ad-start' ? 'ad-marker' : 'content-marker';
+        const label = marker.type === 'ad-start' ? 'AD-START' : 
+                    marker.type === 'ad-end' ? 'AD-END' : 'MARKER';
+        
+        displayHtml += `<span class="scte-marker ${markerClass}">${label}</span>`;
+    });
+    
+    displayHtml += `</div></div>`;
+    
+    scteDisplay.innerHTML = displayHtml;
+}
+
+// Function to open SCTE explainer popup
+function openScteExplainer() {
+    // Calculate center position for the popup
+    const width = 650;
+    const height = 600;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    
+    // Open a new window
+    const explainerWindow = window.open('explainer.html', 'scteExplainer', 
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    
+    // Focus the new window
+    if (explainerWindow) {
+        explainerWindow.focus();
+        
+        // Listen for messages from the explainer window
+        window.addEventListener('message', function(event) {
+            // Verify origin for security
+            if (event.origin !== window.location.origin) return;
+            
+            // Check if explainer is ready for data
+            if (event.data && event.data.type === 'explainerReady' && event.data.explainerType === 'scte') {
+                // Send SCTE data to the explainer
+                explainerWindow.postMessage({ 
+                    type: 'scteData', 
+                    scteData: scteData 
+                }, '*');
+            }
+        });
+    } else {
+        alert("Popup blocked. Please allow popups for this site.");
+    }
+}
