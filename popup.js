@@ -76,6 +76,17 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error("SCTE explainer link not found");
     }
 
+    // Setup Cache explainer link
+    const cacheExplainer = document.getElementById("cacheExplainer");
+    if (cacheExplainer) {
+        cacheExplainer.addEventListener("click", function (e) {
+            e.preventDefault();
+            openCacheExplainer();
+        });
+    } else {
+        console.error("Cache explainer link not found");
+    }
+
     // New code: Tab system handling
     setupTabSystem();
 
@@ -1285,6 +1296,70 @@ function openScteExplainer() {
                 }, '*');
             }
         });
+    } else {
+        alert("Popup blocked. Please allow popups for this site.");
+    }
+}
+
+function openCacheExplainer() {
+    console.log("Opening Cache Explainer");
+    
+    // Calculate center position for the popup
+    const width = 650;
+    const height = 600;
+    const left = (window.screen.width / 2) - (width / 2);
+    const top = (window.screen.height / 2) - (height / 2);
+    
+    // Open a new window with a hash to indicate cache explainer
+    const explainerWindow = window.open('explainer.html#cache', 'cacheExplainer', 
+        `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+    
+    // Focus the new window
+    if (explainerWindow) {
+        explainerWindow.focus();
+        
+        // Add a more targeted event listener
+        const messageHandler = function(event) {
+            // Verify origin for security
+            if (event.origin !== window.location.origin) return;
+            
+            console.log("Message received:", event.data);
+            
+            // Check if explainer is ready for data
+            if (event.data && event.data.type === 'explainerReady' && event.data.explainerType === 'cache') {
+                console.log("Explainer ready, sending cache data");
+                
+                // Prepare cache data to send with hardcoded values for testing
+                const cacheData = {
+                    hitRatio: window.cacheData?.total > 0 ?
+                        ((window.cacheData.hits / window.cacheData.total) * 100).toFixed(1) : "0",
+                    hits: window.cacheData?.hits || 0,
+                    misses: window.cacheData?.misses || 0,
+                    total: window.cacheData?.total || 0,
+                    history: window.cacheData?.history || [],
+                    cacheTTL: {
+                        hasDirectives: true,
+                        maxAge: 86400,
+                        age: 364,
+                        cacheControl: "max-age=86400, stale-while-revalidate=3600, stale-if-error=3600"
+                    }
+                };
+                
+                console.log("Sending cache data:", cacheData);
+                
+                // Send cache data to the explainer
+                explainerWindow.postMessage({ 
+                    type: 'cacheData', 
+                    cacheData: cacheData 
+                }, '*');
+                
+                // Remove this event listener after sending data
+                window.removeEventListener('message', messageHandler);
+            }
+        };
+        
+        // Add the event listener
+        window.addEventListener('message', messageHandler);
     } else {
         alert("Popup blocked. Please allow popups for this site.");
     }

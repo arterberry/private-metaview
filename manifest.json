@@ -1,6 +1,6 @@
 {
 	"manifest_version": 3,
-	"name": "HLS Meta View ",
+	"name": "VIDINFRA MetaView ",
 	"version": "1.0",
 	"description": "Enter an HLS stream URL and play the video with real-time metadata.",
 	"permissions": [

@@ -1,6 +1,6 @@
 // background.js
 chrome.runtime.onInstalled.addListener(() => {
-    console.log("HLS METAView Extension Installed");
+    console.log("VIDINFRA MetaView Extension Installed");
 });
 
 // Handle toolbar icon click
@@ -14,7 +14,7 @@ function createNewWindow() {
         url: 'popup.html',
         type: 'popup',
         width: 1405,
-        height: 930,
+        height: 1080,
     });
 }
 
@@ -22,7 +22,7 @@ function createNewWindow() {
 chrome.runtime.onInstalled.addListener(() => {
     chrome.contextMenus.create({
         id: 'new-instance',
-        title: 'Open new HLS MetaView instance',
+        title: 'Open new VIDINFRA MetaView instance',
         contexts: ['action']
     });
 });
