@@ -8,7 +8,8 @@
 		"activeTab",
 		"scripting",
 		"windows",
-		"contextMenus"
+		"contextMenus",
+		"downloads"
 	],
 	"host_permissions": [
 		"<all_urls>"
@@ -25,7 +26,7 @@
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js"],
+			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js", "html2canvas.min.js"],
 			"matches": ["<all_urls>"]
 		}
 	],
