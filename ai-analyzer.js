@@ -16,11 +16,11 @@ const aiAnalyzer = {
         },
         defaultProvider: 'anthropic',
         endpoints: {
-            gemini: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent',
+            gemini: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
             anthropic: 'https://api.anthropic.com/v1/messages'
         },
         models: {
-            gemini: 'gemini-pro',
+            gemini: 'gemini-2.0-flash',
             anthropic: 'claude-3-haiku-20240307'
         },
         storageKeys: {
@@ -492,7 +492,7 @@ Output ONLY the JSON object. Do not include any introductory text, explanations,
 `;
     },
 
-    // Call the Gemini API
+    // Update the callGeminiAPI function around line 430-450
     callGeminiAPI: function (apiKey, prompt) {
         const endpoint = `${this.config.endpoints.gemini}?key=${apiKey}`;
         const requestBody = {
