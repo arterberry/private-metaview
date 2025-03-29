@@ -98,7 +98,7 @@
                             </div>
                         </div>
 
-                        <!-- QoE Tab -->                        
+                        <!-- QoE Tab -->
                         <div class="tab-pane" id="qoe-tab">
                             <div class="qoe-score-section">
                                 <div class="qoe-score-label">Overall QoE Score:</div>
@@ -200,7 +200,18 @@
 
                         <!-- AI Tab -->
                         <div class="tab-pane" id="ai-tab">
-                            <div class="empty-tab-message">AI analysis will appear here</div>
+                            <div class="ai-analysis-section">
+                                <div class="ai-analysis-header">Platform Compatibility Analysis</div>
+                                <div class="ai-analysis-description">
+                                    Analyzes the HLS stream to determine compatibility with major platforms.
+                                    Play a stream first, then click analyze.
+                                </div>
+                                <button id="analyzeCompatibilityBtn">Analyze Platform Compatibility</button>
+                                <div id="compatibilityResults">
+                                    <div class="analysis-status">No analysis performed yet. Play a stream and click
+                                        Analyze.</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -222,6 +233,7 @@
     <script src="popup.js"></script>
     <script src="export.js"></script>
     <script src="qoe.js"></script>
+    <script src="ai-analyzer.js"></script>
 </body>
 
 </html>

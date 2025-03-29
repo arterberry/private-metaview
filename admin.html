@@ -167,6 +167,14 @@
                 <button id="setKeyButton" class="set-button">Set Key</button>
                 <button id="showKeyButton">Show</button>
             </div>
+            <div class="input-group" style="margin-top: 10px;">
+                <label style="margin-right: 10px;">Provider:</label>
+                <select id="aiProviderSelect" style="flex-grow: 1; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+                    <option value="anthropic">Anthropic Claude</option>
+                    <option value="gemini">Google Gemini</option>
+                </select>
+                <button id="setProviderButton" class="set-button" style="margin-left: 5px;">Set Provider</button>
+            </div>
             <div id="keyStatus" class="status-message"></div>
         </div>
     </div>

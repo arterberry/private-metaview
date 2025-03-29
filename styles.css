@@ -872,3 +872,122 @@ button#exportDataButton, button#clearDataButton {
     color: #e74c3c;
     font-weight: bold;
 }
+
+/* AI Tab */
+.tab-pane#ai-tab {
+    display: none;
+  }
+  
+  .tab-pane#ai-tab.active {
+    display: block;
+  }
+  
+  /* AI Analysis Styling */
+  .ai-analysis-section {
+    margin-bottom: 15px;
+  }
+  
+  .ai-analysis-header {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+  }
+  
+  .ai-analysis-description {
+    font-size: 12px;
+    color: #666;
+    margin-bottom: 10px;
+  }
+  
+  #analyzeCompatibilityBtn {
+    padding: 8px 12px;
+    background-color: #4285F4;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
+  
+  #analyzeCompatibilityBtn:hover {
+    background-color: #3367D6;
+  }
+  
+  #analyzeCompatibilityBtn:disabled {
+    background-color: #CCCCCC;
+    cursor: not-allowed;
+  }
+  
+  #compatibilityResults {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    padding: 10px;
+    font-size: 12px;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  .analysis-status {
+    color: #666;
+    font-style: italic;
+    text-align: center;
+    padding: 10px;
+  }
+  
+  .analysis-error {
+    color: #e74c3c;
+    padding: 10px;
+    text-align: center;
+  }
+  
+  .platform-result {
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: 4px;
+    background-color: #f5f5f5;
+    border-left: 4px solid #ccc;
+  }
+  
+  .platform-result.compatible {
+    border-left-color: #2ecc71;
+  }
+  
+  .platform-result.incompatible {
+    border-left-color: #e74c3c;
+  }
+  
+  .platform-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+  
+  .platform-name {
+    font-weight: bold;
+    font-size: 13px;
+  }
+  
+  .compatibility-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-weight: bold;
+  }
+  
+  .compatibility-badge.compatible {
+    background-color: #2ecc71;
+    color: white;
+  }
+  
+  .compatibility-badge.incompatible {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
+  .platform-reasoning {
+    font-size: 12px;
+    line-height: 1.4;
+  }
