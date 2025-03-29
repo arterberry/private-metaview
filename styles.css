@@ -418,7 +418,7 @@ button#exportDataButton, button#clearDataButton {
 .tab-button.active {
     background-color: #fff;
     font-weight: bold;
-    border-bottom: 2px solid #2196F3;
+    border-bottom: 2px solid #4CAF50;
 }
 
 .tab-content {
@@ -781,7 +781,7 @@ button#exportDataButton, button#clearDataButton {
 }
 
 .qoe-details-tab.active {
-    border-bottom: 2px solid #2196F3;
+    border-bottom: 2px solid #4CAF50;
     font-weight: bold;
 }
 
