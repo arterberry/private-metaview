@@ -3,6 +3,18 @@
 	"name": "VIDINFRA MetaView ",
 	"version": "1.0",
 	"description": "Enter an HLS stream URL and play the video with real-time metadata.",
+	"icons": {
+	  "16": "images/icon16.png",
+	  "48": "images/icon48.png",
+	  "128": "images/icon128.png"
+	},
+	"action": {
+	  "default_icon": {
+		"16": "images/icon16.png",
+		"48": "images/icon48.png",
+		"128": "images/icon128.png"
+	  }
+	},	
 	"permissions": [
 		"storage",
 		"activeTab",
@@ -17,16 +29,9 @@
 	"background": {
 		"service_worker": "background.js"
 	},
-	"action": {
-		"default_icon": {
-			"16": "icon.png",
-			"48": "icon.png",
-			"128": "icon.png"
-		}
-	},
 	"web_accessible_resources": [
 		{
-			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js", "html2canvas.min.js"],
+			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js", "html2canvas.min.js", "qoe.js"],
 			"matches": ["<all_urls>"]
 		}
 	],

@@ -1,17 +1,20 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>VIDINFRA MetaView</title>
     <link rel="stylesheet" type="text/css" href="styles.css">
 </head>
+
 <body>
     <h1>VIDINFRA MetaView</h1>
     <button id="closeButton">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512">
-            <path d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z"/>
+            <path
+                d="M342.6 150.6c12.5-12.5 12.5-32.8 0-45.3s-32.8-12.5-45.3 0L192 210.7 86.6 105.4c-12.5-12.5-32.8-12.5-45.3 0s-12.5 32.8 0 45.3L146.7 256 41.4 361.4c-12.5 12.5-12.5 32.8 0 45.3s32.8 12.5 45.3 0L192 301.3 297.4 406.6c12.5 12.5 32.8 12.5 45.3 0s12.5-32.8 0-45.3L237.3 256 342.6 150.6z" />
         </svg>
     </button>
-    
+
     <div class="main-container">
         <div class="left-panel">
             <div class="video-container">
@@ -23,18 +26,19 @@
                     <div id="metadataList"></div>
                 </div>
                 <div class="export-area">
-                     <!-- Admin button on the left -->
-                     <button id="adminButton">Admin</button>
-                     <!-- Export and Clear buttons will be added by JavaScript -->
+                    <!-- Admin button on the left -->
+                    <button id="adminButton">Admin</button>
+                    <!-- Export and Clear buttons will be added by JavaScript -->
                 </div>
             </div>
         </div>
-        
+
         <div class="right-panel">
             <div class="controls-section">
                 <div class="controls-label">Controls</div>
                 <div class="input-group">
-                    <input type="text" id="hlsUrl" placeholder="https://d1ns9k5qrxc5w8.cloudfront.net/9bf31c7ff062936a067ca6938984d388/k8s/live/scte35.isml/.m3u8">
+                    <input type="text" id="hlsUrl"
+                        placeholder="https://d1ns9k5qrxc5w8.cloudfront.net/9bf31c7ff062936a067ca6938984d388/k8s/live/scte35.isml/.m3u8">
                     <button id="playVideo">Play</button>
                 </div>
                 <div class="helper-link">
@@ -48,7 +52,7 @@
                         <button class="tab-button" data-tab="qoe">QoE</button>
                         <button class="tab-button" data-tab="ai">AI</button>
                     </div>
-                    
+
                     <!-- Tab Contents -->
                     <div class="tab-content">
                         <!-- Inspect Tab (Original Content) -->
@@ -68,12 +72,12 @@
                                     </div>
                                 </div>
                             </div>
-                    
+
                             <div class="cache-ttl-section">
                                 <div class="cache-ttl-label">Cache TTL:</div>
                                 <div id="cacheTtlDisplay" class="cache-ttl-container">No TTL information available</div>
                             </div>
-                            
+
                             <div class="explain-link-container">
                                 <span class="explain-link"><a href="#" id="cacheExplainer">Explain</a></span>
                             </div>
@@ -87,40 +91,137 @@
                                         <span id="adRatio">Ad Ratio: 0%</span>
                                         <span id="adCount">Ads: 0</span>
                                     </div>
-                                </div>                                
+                                </div>
                                 <div class="explain-link-container">
                                     <span class="explain-link"><a href="#" id="scteExplainer">Explain</a></span>
-                                </div>                                
-                            </div>                            
+                                </div>
+                            </div>
                         </div>
-                        
-                        <!-- QoE Tab -->
+
+                        <!-- QoE Tab -->                        
                         <div class="tab-pane" id="qoe-tab">
-                            <div class="empty-tab-message">QoE metrics will appear here</div>
+                            <div class="qoe-score-section">
+                                <div class="qoe-score-label">Overall QoE Score:</div>
+                                <div id="qoeScoreDisplay" class="qoe-score-container">
+                                    <div id="qoeScoreValue" class="qoe-score-value">N/A</div>
+                                    <div id="qoeScoreMeter" class="qoe-score-meter">
+                                        <div id="qoeScoreFill" class="qoe-score-fill" style="width: 0%;"></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="qoe-metrics-section">
+                                <div class="qoe-metrics-label">Playback Metrics:</div>
+                                <div class="qoe-metrics-container">
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">CDN Provider:</span>
+                                        <span id="cdnProvider" class="qoe-metric-value">Detecting...</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Startup Time:</span>
+                                        <span id="startupTime" class="qoe-metric-value">N/A</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Time to First Frame:</span>
+                                        <span id="timeToFirstFrame" class="qoe-metric-value">N/A</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Quality Switches:</span>
+                                        <span id="qualitySwitches" class="qoe-metric-value">0</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Rebuffering Events:</span>
+                                        <span id="rebufferingEvents" class="qoe-metric-value">0</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Average Rebuffer Duration:</span>
+                                        <span id="avgRebufferDuration" class="qoe-metric-value">N/A</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Current Bitrate:</span>
+                                        <span id="currentBitrate" class="qoe-metric-value">N/A</span>
+                                    </div>
+                                    <div class="qoe-metric-row">
+                                        <span class="qoe-metric-name">Playback Rate:</span>
+                                        <span id="playbackRate" class="qoe-metric-value">1x</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="qoe-details-section">
+                                <div class="qoe-details-tabs">
+                                    <button class="qoe-details-tab active" data-qoe-tab="audio-tracks">Audio</button>
+                                    <button class="qoe-details-tab" data-qoe-tab="subtitles">Subtitles</button>
+                                    <button class="qoe-details-tab" data-qoe-tab="connection">Connection</button>
+                                </div>
+
+                                <div class="qoe-details-content">
+                                    <!-- Audio Tracks Panel -->
+                                    <div id="audio-tracks-panel" class="qoe-details-panel active">
+                                        <div id="audioTracksContainer">No audio track information available</div>
+                                    </div>
+
+                                    <!-- Subtitles Panel -->
+                                    <div id="subtitles-panel" class="qoe-details-panel">
+                                        <div id="subtitlesContainer">No subtitle information available</div>
+                                    </div>
+
+                                    <!-- Connection Panel -->
+                                    <div id="connection-panel" class="qoe-details-panel">
+                                        <div id="connectionContainer">
+                                            <div class="qoe-metric-row">
+                                                <span class="qoe-metric-name">TCP Throughput:</span>
+                                                <span id="tcpThroughput" class="qoe-metric-value">N/A</span>
+                                            </div>
+                                            <div class="qoe-metric-row">
+                                                <span class="qoe-metric-name">Download Speed:</span>
+                                                <span id="downloadSpeed" class="qoe-metric-value">N/A</span>
+                                            </div>
+                                            <div class="qoe-metric-row">
+                                                <span class="qoe-metric-name">Latency:</span>
+                                                <span id="latency" class="qoe-metric-value">N/A</span>
+                                            </div>
+                                            <div class="qoe-metric-row">
+                                                <span class="qoe-metric-name">Connection Type:</span>
+                                                <span id="connectionType" class="qoe-metric-value">Unknown</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="qoe-history-section">
+                                <div class="qoe-history-label">QoE Event History:</div>
+                                <div id="qoeEventHistory" class="qoe-history-container">
+                                    <div class="qoe-empty-history">No events recorded yet</div>
+                                </div>
+                            </div>
                         </div>
-                        
+
                         <!-- AI Tab -->
                         <div class="tab-pane" id="ai-tab">
                             <div class="empty-tab-message">AI analysis will appear here</div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Tab content goes above this -->
-                
+
                 <!-- Placeholder Button at Bottom -->
                 <!-- <div class="placeholder-button-container"> -->
-                    <!-- <button id="placeholderButton">Place Holder</button> -->
+                <!-- <button id="placeholderButton">Place Holder</button> -->
                 <!-- </div> -->
             </div>
         </div>
     </div>
 
-    <!-- Load order -->    
+    <!-- Load order -->
     <script src="html2canvas.min.js"></script>
     <script src="hls.min.js"></script>
     <script src="metadata.js"></script>
     <script src="popup.js"></script>
     <script src="export.js"></script>
+    <script src="qoe.js"></script>
 </body>
+
 </html>

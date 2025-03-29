@@ -111,6 +111,11 @@ function handlePlayVideo() {
     //     return;
     // }
 
+    // Reset QoE monitoring if available
+    if (window.qoeModule && window.qoeModule.qoeData) {
+        window.qoeModule.qoeData.reset();
+    }
+
     if (typeof Hls !== "undefined" && Hls.isSupported()) {
         // An HLS instance with modified buffer settings
         let hls = new Hls({
@@ -139,6 +144,11 @@ function handlePlayVideo() {
             addMetadataEntry(`Loading manifest: ${data.url}`);
         });
         
+        // Initialize QoE monitoring
+        if (window.qoeModule) {
+            window.qoeModule.initQoEMonitoring(video, hls);
+        }
+
         hls.on(Hls.Events.MANIFEST_LOADED, function(event, data) {
             console.log("Manifest loaded:", data);
             
