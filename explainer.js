@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Update the title based on hash
     const explainerType = window.location.hash.slice(1) || 'scte';
     if (explainerType === 'cache') {
@@ -8,10 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Receive data from opener
-    window.addEventListener('message', function(event) {
+    window.addEventListener('message', function (event) {
         // Verify origin for security
         if (event.origin !== window.location.origin) return;
-        
+
         // Process the data based on type
         if (event.data && event.data.type === 'scteData') {
             displayScteExplanation(event.data.scteData);
@@ -19,12 +19,12 @@ document.addEventListener('DOMContentLoaded', function() {
             displayCacheExplanation(event.data.cacheData);
         }
     });
-    
+
     // If window was opened by parent, request data
     if (window.opener && !window.opener.closed) {
         // Tell parent window we're ready
-        window.opener.postMessage({ 
-            type: 'explainerReady', 
+        window.opener.postMessage({
+            type: 'explainerReady',
             explainerType: explainerType
         }, '*');
     }
@@ -47,12 +47,12 @@ function formatTimeValue(seconds) {
 // Helper function to identify cache pattern from history
 function identifyCachePattern(history) {
     if (!history || history.length < 5) return "";
-    
+
     const recentHistory = history.slice(-10); // Look at last 10 entries
     const hits = recentHistory.filter(val => val === 1).length;
     const misses = recentHistory.length - hits;
     const hitRatio = (hits / recentHistory.length) * 100;
-    
+
     if (hitRatio === 100) {
         return "Your recent segments show a perfect cache hit pattern, indicating optimal delivery efficiency.";
     } else if (hitRatio === 0) {
@@ -65,7 +65,7 @@ function identifyCachePattern(history) {
         // Check for patterns in the sequence
         const firstFewMisses = recentHistory.slice(0, 5).every(val => val === 0);
         const laterHits = recentHistory.slice(-5).filter(val => val === 1).length >= 3;
-        
+
         if (firstFewMisses && laterHits) {
             return "Your cache pattern shows initial misses followed by increasing hits - typical of content being freshly cached.";
         } else {
@@ -78,12 +78,12 @@ function identifyCachePattern(history) {
 function displayScteExplanation(data) {
     const explanationElement = document.getElementById('explanationContent');
     if (!explanationElement) return;
-    
+
     let explanationHTML = '<h2>Explanation of the SCTE-35 / Ad Tracking Metrics</h2><ul>';
-    
+
     // Ad Breaks explanation
     explanationHTML += `<li><strong>Ad Breaks: ${data.adCount} (${data.adCompletionRate}% complete)</strong>: `;
-    
+
     if (data.adCount === 0) {
         explanationHTML += 'No ad breaks have been detected in this stream yet.';
     } else if (data.adCompletionRate === 0) {
@@ -94,17 +94,17 @@ function displayScteExplanation(data) {
         explanationHTML += `Only ${data.adCompletionRate}% of ad breaks have matching end markers. The rest are either still active or missing proper end markers.`;
     }
     explanationHTML += '</li>';
-    
+
     // Est. Ad Time explanation
     explanationHTML += `<li><strong>Est. Ad Time: ${data.adDuration.toFixed(1)}s</strong>: `;
     if (data.adDuration > 0) {
         const minutes = Math.floor(data.adDuration / 60);
         const seconds = Math.round(data.adDuration % 60);
         explanationHTML += `The stream contains approximately ${minutes} minutes and ${seconds} seconds of advertisement time. `;
-        
+
         if (data.contentDuration > 0) {
             const ratio = data.adDuration / data.contentDuration;
-            explanationHTML += `This represents a ratio of 1:${(1/ratio).toFixed(1)} (ad time:content time).`;
+            explanationHTML += `This represents a ratio of 1:${(1 / ratio).toFixed(1)} (ad time:content time).`;
         } else {
             explanationHTML += 'No content duration has been measured yet to calculate a ratio.';
         }
@@ -112,7 +112,7 @@ function displayScteExplanation(data) {
         explanationHTML += 'No ad duration has been measured yet.';
     }
     explanationHTML += '</li>';
-    
+
     // Recent Markers explanation
     explanationHTML += '<li><strong>Recent Markers</strong>: ';
     if (data.markers.length === 0) {
@@ -126,7 +126,7 @@ function displayScteExplanation(data) {
         explanationHTML += 'In a properly marked stream, each AD-START should have a matching AD-END marker.';
     }
     explanationHTML += '</li>';
-    
+
     // Graph explanation
     explanationHTML += '<li><strong>The Graph</strong>: ';
     if (data.adDuration === 0 && data.contentDuration === 0) {
@@ -137,11 +137,25 @@ function displayScteExplanation(data) {
         explanationHTML += 'The <span style="color:#e74c3c;">red portion</span> represents content time, while the <span style="color:#2ecc71;">green portion</span> represents ad time.';
     }
     explanationHTML += '</li>';
-    
+
+    // Add SCTE-35 detailed explanation section
+    explanationHTML += '<li><strong>SCTE-35 Details</strong>: ';
+    explanationHTML += 'The SCTE-35 details panel (if expanded) shows a deeper analysis of the SCTE-35 signals in the stream. ';
+    explanationHTML += 'This includes the command type, event ID, PTS timing, and other technical metadata extracted from the binary SCTE-35 payload. ';
+    explanationHTML += 'The timeline at the bottom visualizes when these markers appear throughout the stream duration.';
+    explanationHTML += '</li>';
+
     explanationHTML += '</ul>';
-    
+
     explanationHTML += `<p><strong>What is SCTE-35?</strong> SCTE-35 is a broadcast standard that inserts digital cue markers in video streams to signal where advertisements can be inserted. These markers are essential for targeted ad insertion in streaming media.</p>`;
-    
+
+    explanationHTML += `<p><strong>SCTE-35 Commands:</strong> The most common SCTE-35 commands are:</p>`;
+    explanationHTML += `<ul>
+        <li><strong>Splice Insert (0x05):</strong> Indicates a splice point where content should be replaced with another piece of content.</li>
+        <li><strong>Time Signal (0x06):</strong> Carries time-related information, often with segmentation descriptors that indicate the nature of the splice point.</li>
+        <li><strong>Segmentation Descriptor:</strong> Provides detailed information about the type of segmentation event (ad start/end, program boundaries, etc.).</li>
+    </ul>`;
+
     // Update the content
     document.getElementById('explainerTitle').textContent = 'SCTE-35 / Ad Tracking Explainer';
     explanationElement.innerHTML = explanationHTML;
@@ -152,16 +166,16 @@ function displayCacheExplanation(data) {
     console.log("displayCacheExplanation called with data:", data);
     const explanationElement = document.getElementById('explanationContent');
     if (!explanationElement) return;
-    
+
     let explanationHTML = '<h2>Explanation of Cache Performance and TTL Metrics</h2><ul>';
-    
+
     // Cache Hit Ratio explanation
     explanationHTML += `<li><strong>Cache Hit Ratio: ${data.hitRatio}%</strong>: `;
     if (data.total === 0) {
         explanationHTML += 'No segments have been loaded yet. As you play the video, this will show the percentage of segments loaded from the CDN cache.';
     } else {
         explanationHTML += `Out of ${data.total} total segments loaded, ${data.hits} were cache hits (${data.hitRatio}%). `;
-        
+
         if (parseFloat(data.hitRatio) < 30) {
             explanationHTML += 'This low hit ratio suggests that content is not well cached, possibly indicating fresh content or a cache configuration issue.';
         } else if (parseFloat(data.hitRatio) < 70) {
@@ -171,7 +185,7 @@ function displayCacheExplanation(data) {
         }
     }
     explanationHTML += '</li>';
-    
+
     // TTL explanation
     explanationHTML += '<li><strong>Cache TTL (Time To Live)</strong>: ';
     if (!data.cacheTTL || !data.cacheTTL.hasDirectives) {
@@ -203,7 +217,7 @@ function displayCacheExplanation(data) {
         </dl>`;
     }
     explanationHTML += '</li>';
-    
+
     // Graph explanation
     explanationHTML += '<li><strong>The Graph</strong>: ';
     explanationHTML += 'The line graph tracks cache performance over time. Points near the top (HIT) indicate segments loaded from cache, while points near the bottom (MISS) indicate segments that needed to be fetched from the origin.';
@@ -212,13 +226,13 @@ function displayCacheExplanation(data) {
         explanationHTML += ` ${pattern}`;
     }
     explanationHTML += '</li>';
-    
+
     explanationHTML += '</ul>';
-    
+
     explanationHTML += `<p><strong>What is Cache Performance?</strong> Cache performance metrics show how effectively a CDN (Content Delivery Network) is storing and delivering video segments. High cache hit ratios reduce origin server load and can significantly improve playback performance by reducing buffering and startup times.</p>`;
-    
+
     explanationHTML += `<p><strong>What is TTL?</strong> Time To Live (TTL) defines how long content can remain in cache before it must be revalidated with the origin server. Longer TTL values improve performance but may delay updates to content, while shorter TTL values ensure fresher content but may increase origin traffic.</p>`;
-    
+
     // Update the content
     document.getElementById('explainerTitle').textContent = 'Cache Performance Explainer';
     explanationElement.innerHTML = explanationHTML;

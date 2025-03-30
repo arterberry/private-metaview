@@ -116,6 +116,50 @@ function handlePlayVideo() {
         window.qoeModule.qoeData.reset();
     }
 
+    // Add this near the beginning of handlePlayVideo function (around line 102)
+    // Reset SCTE data when starting a new stream
+    console.log("Resetting SCTE data for new stream");
+    scteData = {
+        markers: [],
+        adCuePoints: [],
+        contentCuePoints: [],
+        adDuration: 0,
+        contentDuration: 0,
+        adCount: 0,
+        adCompletionRate: 100,
+        lastUpdate: 0
+    };
+
+    // Show SCTE detail section
+    document.getElementById('scteDetailSection').style.display = 'block';
+
+    // Add a button to force SCTE detail visibility (for debugging)
+    const scteDebugButton = document.createElement('button');
+    scteDebugButton.textContent = 'Debug SCTE';
+    scteDebugButton.style.position = 'fixed';
+    scteDebugButton.style.bottom = '10px';
+    scteDebugButton.style.right = '10px';
+    scteDebugButton.style.zIndex = '9999';
+    scteDebugButton.style.padding = '5px';
+    scteDebugButton.style.display = 'none'; // Hidden by default, only for development
+
+    scteDebugButton.addEventListener('click', function () {
+        console.log('Current SCTE Data:', scteData);
+
+        // Force show SCTE details
+        const scteDetailSection = document.getElementById('scteDetailSection');
+        if (scteDetailSection) {
+            scteDetailSection.style.display = 'block';
+        }
+
+        // Update all SCTE displays
+        updateScteDetailDisplay();
+        updateScteDisplay();
+        updateAdRatioGraph();
+    });
+
+    document.body.appendChild(scteDebugButton);
+
     if (typeof Hls !== "undefined" && Hls.isSupported()) {
         // An HLS instance with modified buffer settings
         let hls = new Hls({
@@ -524,8 +568,14 @@ async function fetchAndParseManifest(url) {
         });
         addMetadataEntry(headerText);
 
-        // Parse manifest content
         const text = await response.text();
+
+        // Track important context markers for better ad detection
+        let foundKeyMethodNone = false;
+        let foundKeyMethodAES = false;
+        let foundDiscontinuity = false;
+        let foundProgramDateTimeChanges = false;
+        let lastProgramDateTime = null;
 
         // Look for SCTE markers and other important tags
         const scteLines = [];
@@ -538,28 +588,64 @@ async function fetchAndParseManifest(url) {
         let foundScteMarkers = false;
 
         text.split('\n').forEach(line => {
-            // Check for SCTE-35 related tags
-            if (line.includes('SCTE') ||
-                line.includes('CUE-OUT') ||
-                line.includes('CUE-IN') ||
-                line.includes('DATERANGE') ||
-                line.includes('MARKER')) {
+            const trimmedLine = line.trim();
 
-                scteLines.push(line);
+            // Track encryption method changes which can signal content transitions
+            if (/^#EXT-X-KEY:METHOD=NONE(?:$|\s|;)/.test(trimmedLine)) {
+                foundKeyMethodNone = true;
+            } else if (/^#EXT-X-KEY:METHOD=AES-128(?:$|\s|;)/.test(trimmedLine)) {
+                foundKeyMethodAES = true;
+            }
 
-                // Process for SCTE tracking
-                const newMarkerProcessed = processSCTEMarker(line, currentTime);
-                if (newMarkerProcessed) {
-                    foundScteMarkers = true;
+            // Track program date time changes
+            if (/^#EXT-X-PROGRAM-DATE-TIME:/.test(trimmedLine)) {
+                const dateMatch = trimmedLine.match(/^#EXT-X-PROGRAM-DATE-TIME:(.+?)(?:Z|$)/);
+                if (dateMatch && dateMatch[1]) {
+                    const currentDateTime = new Date(dateMatch[1] + (dateMatch[1].endsWith('Z') ? '' : 'Z')).getTime();
+                    if (lastProgramDateTime) {
+                        // Check for non-sequential jumps in program date time
+                        const diff = Math.abs(currentDateTime - lastProgramDateTime);
+                        // If more than 5 seconds gap, might indicate content boundary
+                        if (diff > 5000) {
+                            foundProgramDateTimeChanges = true;
+                        }
+                    }
+                    lastProgramDateTime = currentDateTime;
                 }
             }
-            // Capture other metadata tags
-            else if (line.startsWith('#EXT') &&
-                !line.startsWith('#EXTINF') &&
-                !line.startsWith('#EXT-X-BYTERANGE')) {
-                otherMetadata.push(line);
+
+            // Look for SCTE-35 related tags with more precise matching
+            if (/^#EXT-X-SCTE35:|^#EXT-X-CUE:|^#EXT-X-CUE-OUT|^#EXT-X-CUE-IN|^#EXT-X-DATERANGE|^#EXT-X-MARKER|^#EXT-X-DISCONTINUITY$/.test(trimmedLine)) {
+                scteLines.push(trimmedLine);
+
+                // Exact match for discontinuity tag
+                foundDiscontinuity = foundDiscontinuity || trimmedLine === '#EXT-X-DISCONTINUITY';
+
+                // Process for SCTE tracking with proper time context
+                const newMarkerProcessed = processSCTEMarker(trimmedLine, currentTime);
+                if (newMarkerProcessed) {
+                    foundScteMarkers = true;
+                    console.log(`Processed SCTE marker: ${trimmedLine}`);
+                }
+            }
+            // Capture other metadata tags with more precise matching
+            else if (/^#EXT(?!INF|(?:-X-BYTERANGE))/.test(trimmedLine)) {
+                otherMetadata.push(trimmedLine);
             }
         });
+
+        // Additional processing for discontinuity markers in context
+        if (foundDiscontinuity && !foundScteMarkers && (foundKeyMethodNone || foundKeyMethodAES || foundProgramDateTimeChanges)) {
+            // Store context for better discontinuity processing
+            window.streamContext = {
+                foundKeyMethodNone: foundKeyMethodNone,
+                foundKeyMethodAES: foundKeyMethodAES,
+                foundProgramDateTimeChanges: foundProgramDateTimeChanges,
+                url: url
+            };
+
+            console.log("Detected potential content transition markers:", window.streamContext);
+        }
 
         // Display SCTE markers if found
         if (scteLines.length > 0) {
@@ -568,6 +654,26 @@ async function fetchAndParseManifest(url) {
                 scteInfo += `${line}\n`;
             });
             addMetadataEntry(scteInfo, false, true); // Highlight SCTE info
+
+            // Show SCTE detail section if we found markers
+            document.getElementById('scteDetailSection').style.display = 'block';
+
+            // Add toggle link if not already present
+            if (!document.getElementById('scteDetailToggle')) {
+                const scteDisplay = document.getElementById('scteDisplay');
+                const toggleLink = document.createElement('span');
+                toggleLink.id = 'scteDetailToggle';
+                toggleLink.className = 'scte-detail-toggle';
+                toggleLink.textContent = 'Show SCTE-35 Details';
+                toggleLink.addEventListener('click', toggleScteDetails);
+
+                // Add it after the first child of scteDisplay
+                if (scteDisplay.firstChild) {
+                    scteDisplay.insertBefore(toggleLink, scteDisplay.firstChild.nextSibling);
+                } else {
+                    scteDisplay.appendChild(toggleLink);
+                }
+            }
         }
 
         // Display other metadata
@@ -599,6 +705,255 @@ async function fetchAndParseManifest(url) {
 
         addMetadataEntry(errorMessage, !isCORSLikelyIssue);
     }
+}
+
+// Modify the processSCTEMarker function (around line 831)
+function processSCTEMarker(marker, currentTime) {
+    // Skip if this is a duplicate marker (based on time)
+    if (scteData.markers.some(m => m.time === currentTime && m.marker === marker)) {
+        return false;
+    }
+
+    // Handle discontinuity markers which often indicate ad boundaries
+    let markerType = 'unknown';
+    let duration = 0;
+    let parsedScte35 = null;
+
+    // Check for discontinuity which might indicate ad boundaries
+    const isDiscontinuity = /^#EXT-X-DISCONTINUITY(?:$|\r|\n)/.test(marker);
+
+    // Use our SCTE35Parser to extract data if available
+    if (window.SCTE35Parser && !isDiscontinuity) {
+        parsedScte35 = window.SCTE35Parser.extractFromHLSTags(marker);
+    }
+
+    if (parsedScte35) {
+        console.log("Parsed SCTE-35 data:", parsedScte35);
+
+        // Determine if this is an ad start or end based on the parsed data
+        if (parsedScte35.spliceCommandType === 0x05 && parsedScte35.spliceCommandInfo) {
+            // Splice Insert command
+            if (!parsedScte35.spliceCommandInfo.spliceEventCancelIndicator) {
+                markerType = parsedScte35.spliceCommandInfo.outOfNetworkIndicator ? 'ad-start' : 'ad-end';
+
+                // Get duration if available
+                if (parsedScte35.spliceCommandInfo.breakDuration) {
+                    duration = parsedScte35.spliceCommandInfo.breakDuration.duration / 90000; // Convert from 90kHz to seconds
+                }
+            }
+        } else if (parsedScte35.spliceCommandType === 0x07 && parsedScte35.descriptors) {
+            // Time Signal command - check for segmentation descriptors
+            const segDescriptors = parsedScte35.descriptors.filter(d => d.tag === 0x02);
+
+            if (segDescriptors.length > 0 && segDescriptors[0].info) {
+                const segInfo = segDescriptors[0].info;
+
+                if (segInfo.isAdStart) {
+                    markerType = 'ad-start';
+                } else if (segInfo.isAdEnd) {
+                    markerType = 'ad-end';
+                }
+
+                // Get duration if available
+                if (segInfo.segmentationDuration) {
+                    duration = segInfo.segmentationDuration / 90000; // Convert from 90kHz to seconds
+                }
+            }
+        }
+    } else if (marker.includes('CUE-OUT') || marker.includes('SCTE35-OUT')) {
+        markerType = 'ad-start';
+        // Try to extract duration if available (e.g., #EXT-X-CUE-OUT:30)
+        const durationMatch = marker.match(/CUE-OUT:(\d+)/);
+        if (durationMatch) {
+            duration = parseInt(durationMatch[1], 10);
+        }
+    } else if (marker.includes('CUE-IN') || marker.includes('SCTE35-IN')) {
+        markerType = 'ad-end';
+    } else if (marker.includes('DATERANGE') && marker.includes('DURATION')) {
+        // Extract information from DATERANGE tag
+        const durationMatch = marker.match(/DURATION=(\d+(?:\.\d+)?)/);
+        if (durationMatch) {
+            duration = parseFloat(durationMatch[1]);
+        }
+
+        if (marker.includes('SCTE35-OUT')) {
+            markerType = 'ad-start';
+        } else if (marker.includes('SCTE35-IN')) {
+            markerType = 'ad-end';
+        }
+    } else if (isDiscontinuity) {
+        // If it's a discontinuity, use the dedicated handler
+        return processDiscontinuityMarker(marker, currentTime);
+    }
+
+    // If we couldn't determine marker type, don't process it
+    if (markerType === 'unknown') {
+        console.log("Unknown marker type, not processing");
+        return false;
+    }
+
+    console.log(`Marker processed as type: ${markerType}, duration: ${duration}`);
+
+    // Add to markers list with debugging info
+    scteData.markers.push({
+        time: currentTime,
+        marker: marker,
+        type: markerType,
+        duration: duration,
+        parsed: parsedScte35,
+        description: isDiscontinuity ? "Discontinuity marker (ad boundary)" :
+            parsedScte35 ? window.SCTE35Parser.getHumanReadableDescription(parsedScte35) :
+                "SCTE-35 marker"
+    });
+
+    // Update ad/content tracking
+    updateAdTracking(markerType, duration, currentTime);
+
+    // Update SCTE details display
+    updateScteDetailDisplay();
+
+    // Update the main display
+    updateScteDisplay();
+
+    // Return true if we processed a new marker
+    return true;
+}
+
+// Add function to toggle SCTE details display
+// Add toggle function for SCTE details
+function toggleScteDetails(e) {
+    if (e) e.preventDefault();
+
+    const detailSection = document.getElementById('scteDetailSection');
+    const toggleLink = document.getElementById('scteDetailToggle');
+
+    if (!detailSection || !toggleLink) return;
+
+    if (detailSection.style.display === 'none') {
+        detailSection.style.display = 'block';
+        toggleLink.textContent = 'Hide SCTE-35 Details';
+    } else {
+        detailSection.style.display = 'none';
+        toggleLink.textContent = 'Show SCTE-35 Details';
+    }
+}
+
+// Update SCTE details display
+function updateScteDetailDisplay() {
+    const container = document.getElementById('scteDetailContainer');
+    if (!container) return;
+
+    // Clear container
+    container.innerHTML = '';
+
+    if (scteData.markers.length === 0) {
+        container.innerHTML = '<div class="scte-detail-empty">No SCTE-35 signals decoded yet</div>';
+        return;
+    }
+
+    // Get the last 5 markers (most recent first)
+    const recentMarkers = scteData.markers.slice(-5).reverse();
+
+    // Add each marker to the display
+    recentMarkers.forEach(marker => {
+        const signalElement = document.createElement('div');
+        signalElement.className = `scte-signal ${marker.type}`;
+
+        // Create header with type and time
+        const headerElement = document.createElement('div');
+        headerElement.className = 'scte-signal-header';
+
+        const typeElement = document.createElement('div');
+        typeElement.className = 'scte-signal-type';
+        typeElement.textContent = marker.type === 'ad-start' ? 'Ad Start' :
+            marker.type === 'ad-end' ? 'Ad End' : 'Marker';
+
+        const timeElement = document.createElement('div');
+        timeElement.className = 'scte-signal-time';
+        timeElement.textContent = `Time: ${marker.time.toFixed(2)}s`;
+
+        headerElement.appendChild(typeElement);
+        headerElement.appendChild(timeElement);
+
+        // Create description
+        const descriptionElement = document.createElement('div');
+        descriptionElement.className = 'scte-signal-description';
+        descriptionElement.textContent = marker.description || 'SCTE-35 Signal';
+
+        // Create details element if we have parsed data
+        let detailsElement = null;
+        if (marker.parsed) {
+            detailsElement = document.createElement('div');
+            detailsElement.className = 'scte-signal-details';
+
+            // Add command type
+            if (marker.parsed.spliceCommandTypeName) {
+                detailsElement.textContent += `Command: ${marker.parsed.spliceCommandTypeName}`;
+            }
+
+            // Add event ID if available
+            if (marker.parsed.spliceCommandInfo && marker.parsed.spliceCommandInfo.spliceEventId !== undefined) {
+                detailsElement.textContent += ` | Event ID: ${marker.parsed.spliceCommandInfo.spliceEventId}`;
+            }
+
+            // Add PTS time if available
+            if (marker.parsed.spliceCommandInfo &&
+                marker.parsed.spliceCommandInfo.spliceTime &&
+                marker.parsed.spliceCommandInfo.spliceTime.ptsTime) {
+                const ptsFormatted = window.formatScteTime ?
+                    window.formatScteTime(marker.parsed.spliceCommandInfo.spliceTime.ptsTime) :
+                    marker.parsed.spliceCommandInfo.spliceTime.ptsTime;
+                detailsElement.textContent += ` | PTS: ${ptsFormatted}`;
+            }
+
+            // Add duration if available (formatted)
+            if (marker.duration) {
+                detailsElement.textContent += ` | Duration: ${marker.duration.toFixed(1)}s`;
+            }
+        }
+
+        // Assemble the signal element
+        signalElement.appendChild(headerElement);
+        signalElement.appendChild(descriptionElement);
+        if (detailsElement) signalElement.appendChild(detailsElement);
+
+        container.appendChild(signalElement);
+    });
+
+    // Update timeline
+    updateScteTimeline();
+}
+
+// Update SCTE timeline
+function updateScteTimeline() {
+    const timeline = document.getElementById('scteTimeline');
+    if (!timeline) return;
+
+    // Clear timeline
+    timeline.innerHTML = '';
+
+    // Get video duration
+    const video = document.getElementById('videoPlayer');
+    if (!video || !video.duration) return;
+
+    const duration = video.duration;
+    const width = timeline.clientWidth;
+
+    // Add markers to timeline
+    scteData.markers.forEach(marker => {
+        if (marker.time <= duration) {
+            const position = (marker.time / duration) * width;
+
+            const markerElement = document.createElement('div');
+            markerElement.className = `scte-marker-point ${marker.type}`;
+            markerElement.style.left = `${position}px`;
+
+            // Add tooltip with time and description
+            markerElement.title = `${marker.type === 'ad-start' ? 'Ad Start' : 'Ad End'} at ${marker.time.toFixed(2)}s`;
+
+            timeline.appendChild(markerElement);
+        }
+    });
 }
 
 // // Function to fetch metadata (placeholder - you may need to implement this)
@@ -1133,27 +1488,152 @@ function updateAdRatioGraph() {
 }
 
 // Process SCTE-35 marker
+// function processSCTEMarker(marker, currentTime) {
+//     // Skip if this is a duplicate marker (based on time)
+//     if (scteData.markers.some(m => m.time === currentTime && m.marker === marker)) {
+//         return false;
+//     }
+
+//     // Handle discontinuity markers which often indicate ad boundaries
+//     let markerType = 'unknown';
+//     let duration = 0;
+//     let isDiscontinuity = marker.includes('#EXT-X-DISCONTINUITY');
+
+//     console.log(`Processing potential SCTE marker: ${marker.substring(0, 30)}... at time ${currentTime}`);
+
+//     if (marker.includes('CUE-OUT') || marker.includes('SCTE35-OUT')) {
+//         markerType = 'ad-start';
+//         // Try to extract duration if available
+//         const durationMatch = marker.match(/CUE-OUT:(\d+)/);
+//         if (durationMatch) {
+//             duration = parseInt(durationMatch[1], 10);
+//         }
+//     } else if (marker.includes('CUE-IN') || marker.includes('SCTE35-IN')) {
+//         markerType = 'ad-end';
+//     } else if (marker.includes('DATERANGE') && marker.includes('SCTE35')) {
+//         // Extract information from DATERANGE tag
+//         const durationMatch = marker.match(/DURATION=(\d+(?:\.\d+)?)/);
+//         if (durationMatch) {
+//             duration = parseFloat(durationMatch[1]);
+//         }
+
+//         if (marker.includes('SCTE35-OUT')) {
+//             markerType = 'ad-start';
+//         } else if (marker.includes('SCTE35-IN')) {
+//             markerType = 'ad-end';
+//         }
+//     } else if (isDiscontinuity) {
+//         // For streams that use discontinuities to mark ad boundaries
+//         // We'll use a pattern recognition approach based on the context
+
+//         // Get current video time to help identify patterns
+//         const video = document.getElementById('videoPlayer');
+//         const videoTime = video ? video.currentTime : 0;
+
+//         console.log(`Discontinuity at video time: ${videoTime}, marker time: ${currentTime}`);
+
+//         // Use a more reliable method than odd/even counting
+//         // Check if there's a pattern in the timing
+//         const recentDiscontinuities = scteData.markers
+//             .filter(m => m.marker.includes('DISCONTINUITY'))
+//             .map(m => m.time);
+
+//         // For this specific stream, check the pattern of discontinuities
+//         // Most ad segments are introduced by discontinuities about 30 seconds apart
+//         if (recentDiscontinuities.length >= 1) {
+//             const lastTime = recentDiscontinuities[recentDiscontinuities.length - 1];
+//             const timeDiff = currentTime - lastTime;
+
+//             console.log(`Time since last discontinuity: ${timeDiff}s`);
+
+//             // If timespan is around 30 seconds (typical ad length), 
+//             // this could be the end of an ad segment
+//             if (timeDiff >= 25 && timeDiff <= 35) {
+//                 markerType = 'ad-end';
+//                 console.log("Detected AD-END from discontinuity timing pattern");
+//             } 
+//             // If not the end of an ad, and we see "COMMERCIAL IN PROGRESS" text
+//             // or a new discontinuity after longer content, mark as ad start
+//             else if (timeDiff >= 60) {
+//                 markerType = 'ad-start';
+//                 duration = 30;  // Assume standard 30s duration
+//                 console.log("Detected AD-START from discontinuity timing pattern");
+//             }
+//             // Alternative heuristic: check for discontinuities in groups
+//             else if (timeDiff < 10) {
+//                 // Closely spaced discontinuities might indicate ad boundary
+//                 // Check how many we've seen in quick succession
+//                 const groupSize = recentDiscontinuities.filter(t => 
+//                     currentTime - t < 10).length;
+
+//                 if (groupSize % 2 === 0) {
+//                     markerType = 'ad-end';
+//                     console.log("Detected AD-END from discontinuity group pattern");
+//                 } else {
+//                     markerType = 'ad-start';
+//                     duration = 30;
+//                     console.log("Detected AD-START from discontinuity group pattern");
+//                 }
+//             }
+//         } else {
+//             // If this is the first discontinuity, assume it's an ad start
+//             markerType = 'ad-start';
+//             duration = 30;  // Assume standard 30s duration
+//             console.log("Detected first AD-START from discontinuity");
+//         }
+//     }
+
+//     console.log(`Marker processed as type: ${markerType}, duration: ${duration}`);
+
+//     // Add to markers list with debugging info
+//     scteData.markers.push({
+//         time: currentTime,
+//         marker: marker,
+//         type: markerType,
+//         duration: duration,
+//         description: isDiscontinuity ? "Discontinuity marker (ad boundary)" : "SCTE-35 marker"
+//     });
+
+//     // Update ad/content tracking
+//     updateAdTracking(markerType, duration, currentTime);
+
+//     // Update SCTE details display
+//     updateScteDetailDisplay();
+
+//     // Update the main display
+//     updateScteDisplay();
+
+//     // Return true if we processed a new marker
+//     return true;
+// }
+
+// PART 2 - Update the processSCTEMarker function in popup.js
 function processSCTEMarker(marker, currentTime) {
     // Skip if this is a duplicate marker (based on time)
     if (scteData.markers.some(m => m.time === currentTime && m.marker === marker)) {
         return false;
     }
 
-    // Parse the marker type
+    // Handle discontinuity markers which often indicate ad boundaries
     let markerType = 'unknown';
     let duration = 0;
+    let parsedScte35 = null;
+    // let isDiscontinuity = marker.includes('#EXT-X-DISCONTINUITY');
+    let isDiscontinuity = /^#EXT-X-DISCONTINUITY(?:$|\r|\n)/.test(marker);
 
-    // Extract type and duration from the marker
-    if (marker.includes('CUE-OUT')) {
+    console.log(`Processing potential SCTE marker: ${marker.substring(0, 30)}... at time ${currentTime}`);
+
+    // Priority 1: Look for explicit SCTE-35 markers first
+    if (marker.includes('CUE-OUT') || marker.includes('SCTE35-OUT')) {
         markerType = 'ad-start';
-        // Try to extract duration if available (e.g., #EXT-X-CUE-OUT:30)
+        // Try to extract duration if available
         const durationMatch = marker.match(/CUE-OUT:(\d+)/);
         if (durationMatch) {
             duration = parseInt(durationMatch[1], 10);
         }
-    } else if (marker.includes('CUE-IN')) {
+    } else if (marker.includes('CUE-IN') || marker.includes('SCTE35-IN')) {
         markerType = 'ad-end';
-    } else if (marker.includes('DATERANGE') && marker.includes('DURATION')) {
+    } else if (marker.includes('DATERANGE') && marker.includes('SCTE35')) {
         // Extract information from DATERANGE tag
         const durationMatch = marker.match(/DURATION=(\d+(?:\.\d+)?)/);
         if (durationMatch) {
@@ -1166,40 +1646,123 @@ function processSCTEMarker(marker, currentTime) {
             markerType = 'ad-end';
         }
     }
+    // Priority 2: Use SCTE35Parser for binary data extraction if available
+    else if (window.SCTE35Parser && !isDiscontinuity) {
+        parsedScte35 = window.SCTE35Parser.extractFromHLSTags(marker);
 
-    // Add to markers list
+        if (parsedScte35) {
+            console.log("Parsed SCTE-35 data:", parsedScte35);
+
+            // Determine if this is an ad start or end based on the parsed data
+            if (parsedScte35.spliceCommandType === 0x05 && parsedScte35.spliceCommandInfo) {
+                // Splice Insert command
+                if (!parsedScte35.spliceCommandInfo.spliceEventCancelIndicator) {
+                    markerType = parsedScte35.spliceCommandInfo.outOfNetworkIndicator ? 'ad-start' : 'ad-end';
+
+                    // Get duration if available
+                    if (parsedScte35.spliceCommandInfo.breakDuration) {
+                        duration = parsedScte35.spliceCommandInfo.breakDuration.duration / 90000; // Convert from 90kHz to seconds
+                    }
+                }
+            } else if (parsedScte35.spliceCommandType === 0x07 && parsedScte35.descriptors) {
+                // Time Signal command - check for segmentation descriptors
+                const segDescriptors = parsedScte35.descriptors.filter(d => d.tag === 0x02);
+
+                if (segDescriptors.length > 0 && segDescriptors[0].info) {
+                    const segInfo = segDescriptors[0].info;
+
+                    if (segInfo.isAdStart) {
+                        markerType = 'ad-start';
+                    } else if (segInfo.isAdEnd) {
+                        markerType = 'ad-end';
+                    }
+
+                    // Get duration if available
+                    if (segInfo.segmentationDuration) {
+                        duration = segInfo.segmentationDuration / 90000; // Convert from 90kHz to seconds
+                    }
+                }
+            }
+        }
+    }
+    // Priority 3: Use discontinuity markers, but with more sophisticated heuristics
+    else if (isDiscontinuity) {
+        // Only use discontinuity as a last resort and with improved detection
+        return processDiscontinuityMarker(marker, currentTime);
+    }
+
+    // If we couldn't determine marker type, don't process it
+    if (markerType === 'unknown') {
+        console.log("Unknown marker type, not processing");
+        return false;
+    }
+
+    console.log(`Marker processed as type: ${markerType}, duration: ${duration}`);
+
+    // Add to markers list with debugging info
     scteData.markers.push({
         time: currentTime,
         marker: marker,
         type: markerType,
-        duration: duration
+        duration: duration,
+        parsed: parsedScte35,
+        description: isDiscontinuity ? "Discontinuity marker (ad boundary)" :
+            parsedScte35 ? window.SCTE35Parser.getHumanReadableDescription(parsedScte35) :
+                "SCTE-35 marker"
     });
 
     // Update ad/content tracking
     updateAdTracking(markerType, duration, currentTime);
 
+    // Update SCTE details display
+    updateScteDetailDisplay();
+
+    // Update the main display
+    updateScteDisplay();
+
     // Return true if we processed a new marker
     return true;
 }
 
-// Update ad tracking data
+// Update the updateAdTracking function in popup.js
 function updateAdTracking(markerType, duration, currentTime) {
+    console.log(`Updating ad tracking: type=${markerType}, duration=${duration}, time=${currentTime}`);
+
     // Handle ad start marker
     if (markerType === 'ad-start') {
+        // Check if we have an unmatched ad already in progress
+        const openAds = scteData.adCuePoints.filter(ad => !ad.completed);
+
+        // If we have more than one open ad, something is wrong - close the previous one
+        if (openAds.length > 0) {
+            console.warn(`Found ${openAds.length} uncompleted ads when processing a new ad-start. Closing previous ads.`);
+            openAds.forEach(ad => {
+                ad.completed = true;
+                ad.endTime = currentTime;
+                if (!ad.duration) {
+                    const calculatedDuration = currentTime - ad.startTime;
+                    ad.duration = calculatedDuration;
+                }
+            });
+        }
+
+        // Add new ad cue point
         scteData.adCuePoints.push({
             startTime: currentTime,
-            duration: duration,
-            endTime: duration ? currentTime + duration : null,
+            duration: duration || 30, // Default to 30s if not specified
+            endTime: duration ? (currentTime + duration) : null,
             completed: false
         });
+
+        // Increment ad count
         scteData.adCount++;
+        console.log(`Ad count incremented to ${scteData.adCount}`);
 
-        // If duration is available, add to ad duration total
-        if (duration) {
-            scteData.adDuration += duration;
-        }
+        // Add estimated duration to total
+        const adDuration = duration || 30;
+        scteData.adDuration += adDuration;
+        console.log(`Ad duration increased by ${adDuration}s to ${scteData.adDuration}s`);
     }
-
     // Handle ad end marker
     else if (markerType === 'ad-end') {
         // Find the most recent uncompleted ad
@@ -1207,6 +1770,7 @@ function updateAdTracking(markerType, duration, currentTime) {
         if (uncompleted.length > 0) {
             const lastAd = uncompleted[uncompleted.length - 1];
             lastAd.completed = true;
+            console.log(`Marked ad at ${lastAd.startTime}s as completed`);
 
             // If we didn't know the duration before, calculate it now
             if (!lastAd.duration && lastAd.startTime) {
@@ -1214,9 +1778,12 @@ function updateAdTracking(markerType, duration, currentTime) {
                 lastAd.duration = calculatedDuration;
                 lastAd.endTime = currentTime;
 
-                // Add to total ad duration
+                // Update total ad duration
                 scteData.adDuration += calculatedDuration;
+                console.log(`Updated ad duration with calculated value: ${calculatedDuration}s, total: ${scteData.adDuration}s`);
             }
+        } else {
+            console.warn("Received ad-end marker with no corresponding ad-start");
         }
     }
 
@@ -1225,29 +1792,129 @@ function updateAdTracking(markerType, duration, currentTime) {
     scteData.adCompletionRate = scteData.adCount > 0 ?
         Math.round((completedAds / scteData.adCount) * 100) : 100;
 
-    // Calculate content duration (rough estimate based on gaps between ads)
-    // This is a simplified approach - in reality, you'd need more accurate timing
-    if (scteData.adCuePoints.length >= 2) {
-        scteData.contentDuration = 0;
-        for (let i = 1; i < scteData.adCuePoints.length; i++) {
-            const prevAdEnd = scteData.adCuePoints[i - 1].endTime || 0;
-            const currAdStart = scteData.adCuePoints[i].startTime || 0;
+    console.log(`Ad completion rate: ${scteData.adCompletionRate}% (${completedAds}/${scteData.adCount})`);
 
-            if (prevAdEnd > 0 && currAdStart > prevAdEnd) {
-                scteData.contentDuration += (currAdStart - prevAdEnd);
-            }
-        }
-    }
+    // Calculate content duration (improved approach)
+    updateContentDuration();
 
     // Update the UI
     updateScteDisplay();
     updateAdRatioGraph();
 }
 
-// Update the SCTE display
+// Add this new helper function for content duration calculation
+function updateContentDuration() {
+    const videoElement = document.getElementById('videoPlayer');
+    if (!videoElement) return;
+
+    // Use the video's current time as a reference for total viewed content
+    const totalTime = videoElement.currentTime;
+
+    if (totalTime <= 0) return;
+
+    // Recalculate content duration as total time minus ad duration
+    scteData.contentDuration = Math.max(0, totalTime - scteData.adDuration);
+    console.log(`Updated content duration: ${scteData.contentDuration}s (total: ${totalTime}s, ads: ${scteData.adDuration}s)`);
+}
+
+// PART 3: Add this new function to popup.js
+function processDiscontinuityMarker(marker, currentTime) {
+    console.log(`Processing discontinuity marker at time: ${currentTime}`);
+
+    // Get previous discontinuity times to analyze patterns
+    const discontinuityTimes = scteData.markers
+        .filter(m => /^#EXT-X-DISCONTINUITY(?:$|\r|\n)/.test(m.marker))
+        .map(m => m.time);
+
+    // If this is the first discontinuity, assume it's an ad start
+    if (discontinuityTimes.length === 0) {
+        console.log("First discontinuity detected, treating as AD-START");
+
+        // Add to markers list with a default duration
+        scteData.markers.push({
+            time: currentTime,
+            marker: marker,
+            type: 'ad-start',
+            duration: 30, // Default duration of 30s
+            description: "Discontinuity marker (assumed ad start)"
+        });
+
+        // Update tracking
+        updateAdTracking('ad-start', 30, currentTime);
+        updateScteDetailDisplay();
+        updateScteDisplay();
+
+        return true;
+    }
+
+    // For subsequent discontinuities, alternate between ad-end and ad-start
+    // This works well for standard HLS streams where discontinuities mark boundaries
+    const lastDiscontinuityMarker = scteData.markers
+        .filter(m => /^#EXT-X-DISCONTINUITY(?:$|\r|\n)/.test(m.marker))
+        .pop();
+
+    // Check if we have any type assignment for the last marker
+    if (lastDiscontinuityMarker && lastDiscontinuityMarker.type) {
+        // Alternate: if last was 'ad-start', this is 'ad-end' and vice versa
+        const markerType = lastDiscontinuityMarker.type === 'ad-start' ? 'ad-end' : 'ad-start';
+        const duration = markerType === 'ad-start' ? 30 : 0; // Only ad-start needs duration
+
+        console.log(`Detected discontinuity as ${markerType} based on alternating pattern`);
+
+        // Add to markers list
+        scteData.markers.push({
+            time: currentTime,
+            marker: marker,
+            type: markerType,
+            duration: duration,
+            description: `Discontinuity marker (detected ${markerType})`
+        });
+
+        // Update tracking
+        updateAdTracking(markerType, duration, currentTime);
+        updateScteDetailDisplay();
+        updateScteDisplay();
+
+        return true;
+    } else {
+        // If we got here, the last discontinuity didn't have a type assigned
+        // Default to ad-start for even discontinuities, ad-end for odd
+        const isEven = discontinuityTimes.length % 2 === 0;
+        const markerType = isEven ? 'ad-start' : 'ad-end';
+        const duration = markerType === 'ad-start' ? 30 : 0;
+
+        console.log(`Detected discontinuity as ${markerType} based on count parity`);
+
+        // Add to markers list
+        scteData.markers.push({
+            time: currentTime,
+            marker: marker,
+            type: markerType,
+            duration: duration,
+            description: `Discontinuity marker (detected ${markerType})`
+        });
+
+        // Update tracking
+        updateAdTracking(markerType, duration, currentTime);
+        updateScteDetailDisplay();
+        updateScteDisplay();
+
+        return true;
+    }
+}
+
+// Update the updateScteDisplay function (around line 1016)
 function updateScteDisplay() {
     const scteDisplay = document.getElementById('scteDisplay');
     if (!scteDisplay) return;
+
+    // Make sure SCTE details section is visible if we have markers
+    if (scteData.markers.length > 0) {
+        const detailSection = document.getElementById('scteDetailSection');
+        if (detailSection) {
+            detailSection.style.display = 'block';
+        }
+    }
 
     if (scteData.markers.length === 0) {
         scteDisplay.innerHTML = "No SCTE-35 markers detected";
@@ -1284,7 +1951,8 @@ function updateScteDisplay() {
 
     const recentMarkers = scteData.markers.slice(-3);
     recentMarkers.forEach(marker => {
-        const markerClass = marker.type === 'ad-start' ? 'ad-marker' : 'content-marker';
+        const markerClass = marker.type === 'ad-start' ? 'ad-marker' :
+            marker.type === 'ad-end' ? 'content-marker' : '';
         const label = marker.type === 'ad-start' ? 'AD-START' :
             marker.type === 'ad-end' ? 'AD-END' : 'MARKER';
 
@@ -1293,7 +1961,24 @@ function updateScteDisplay() {
 
     displayHtml += `</div></div>`;
 
+    // Add toggle for SCTE details
+    displayHtml += `<div style="margin-top: 5px;">
+        <a href="#" id="scteDetailToggle" class="scte-detail-toggle">Show SCTE-35 Details</a>
+    </div>`;
+
     scteDisplay.innerHTML = displayHtml;
+
+    // Re-add event listener for toggle
+    const toggleLink = document.getElementById('scteDetailToggle');
+    if (toggleLink) {
+        toggleLink.addEventListener('click', function (e) {
+            e.preventDefault();
+            toggleScteDetails();
+        });
+    }
+
+    // Also update the ad ratio graph
+    updateAdRatioGraph();
 }
 
 // Function to open SCTE explainer popup

@@ -95,6 +95,17 @@
                                 <div class="explain-link-container">
                                     <span class="explain-link"><a href="#" id="scteExplainer">Explain</a></span>
                                 </div>
+                                
+                                <!-- SCTE-35 Detailed View -->
+                                <div class="scte-detail-section" id="scteDetailSection" style="display: none; margin-top: 10px;">
+                                    <div class="scte-detail-label">SCTE-35 Signal Details:</div>
+                                    <div id="scteDetailContainer" class="scte-detail-container">
+                                        <div class="scte-detail-empty">No SCTE-35 signals decoded yet</div>
+                                    </div>
+                                    <div class="scte-timeline" id="scteTimeline">
+                                        <!-- SCTE-35 timeline will be populated by JavaScript -->
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -229,6 +240,7 @@
     <!-- Load order -->
     <script src="html2canvas.min.js"></script>
     <script src="hls.min.js"></script>
+    <script src="scte35.js"></script>
     <script src="metadata.js"></script>
     <script src="popup.js"></script>
     <script src="export.js"></script>

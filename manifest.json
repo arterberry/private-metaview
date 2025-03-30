@@ -31,7 +31,7 @@
 	},
 	"web_accessible_resources": [
 		{
-			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js", "html2canvas.min.js", "qoe.js", "admin.html", "admin.js", "ai-analyzer.js"],
+			"resources": ["helper.html", "helper.js", "metadata-buffer.js", "export.js", "explainer.html", "explainer.js", "html2canvas.min.js", "qoe.js", "admin.html", "admin.js", "ai-analyzer.js", "scte35.js"],
 			"matches": ["<all_urls>"]
 		}
 	],

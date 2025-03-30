@@ -37,7 +37,8 @@ body {
     overflow: hidden;
 }
 
-html, body {
+html,
+body {
     min-width: 1405px;
     min-height: 930px;
 }
@@ -62,7 +63,8 @@ h1 {
     width: 70%;
     display: flex;
     flex-direction: column;
-    height: 100%; /* Ensure the panel takes full height */
+    height: 100%;
+    /* Ensure the panel takes full height */
 }
 
 .right-panel {
@@ -75,11 +77,14 @@ h1 {
 .video-container {
     border: 1px solid #000;
     background-color: #000;
-    margin-bottom: 10px; /* Reduced from 15px */
+    margin-bottom: 10px;
+    /* Reduced from 15px */
     position: relative;
     aspect-ratio: 16/9;
-    height: 55%; /* Reduced from 60% */
-    min-height: 380px; /* Reduced from 400px */
+    height: 55%;
+    /* Reduced from 60% */
+    min-height: 380px;
+    /* Reduced from 400px */
     flex-shrink: 0;
 }
 
@@ -107,7 +112,7 @@ video {
     gap: 5px;
     flex-direction: row;
     align-items: center;
-    width: 100%; 
+    width: 100%;
 }
 
 input {
@@ -140,10 +145,12 @@ button#closeButton {
     background: #85929e;
     color: white;
     border: none;
-    border-radius: 50%; /* Changed to 50% for circular shape */
+    border-radius: 50%;
+    /* Changed to 50% for circular shape */
     width: 32px;
     height: 32px;
-    padding: 0; /* Remove padding */
+    padding: 0;
+    /* Remove padding */
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -155,13 +162,14 @@ button#closeButton svg {
     height: 16px;
     fill: white;
 }
+
 .metadata-section {
     flex-grow: 1;
     display: flex;
     flex-direction: column;
     position: relative;
     padding-bottom: 40px;
-    height: calc(50% - 40px); 
+    height: calc(50% - 40px);
     min-height: 90px;
     max-height: calc(40% - 40px);
 }
@@ -171,7 +179,8 @@ button#closeButton svg {
     margin-bottom: 5px;
     font-size: 14px;
     /* text-transform: uppercase; */
-    flex-shrink: 0; /* Prevent label from shrinking */
+    flex-shrink: 0;
+    /* Prevent label from shrinking */
 }
 
 #metadataPanel {
@@ -183,16 +192,20 @@ button#closeButton svg {
     flex: 1;
     position: relative;
     height: 100%;
-    max-height: 100%; /* This ensures the panel doesn't expand */
+    max-height: 100%;
+    /* This ensures the panel doesn't expand */
     display: flex;
     flex-direction: column;
 }
 
 #metadataList {
     overflow-y: auto;
-    max-height: 100%; /* Keep content within the panel */
-    word-wrap: break-word; /* Ensure text wraps */
-    white-space: pre-wrap; /* Preserve formatting but wrap */
+    max-height: 100%;
+    /* Keep content within the panel */
+    word-wrap: break-word;
+    /* Ensure text wraps */
+    white-space: pre-wrap;
+    /* Preserve formatting but wrap */
 }
 
 .export-area {
@@ -200,32 +213,38 @@ button#closeButton svg {
     bottom: 0;
     left: 0;
     right: 0;
-    height: 35px; /* Further reduced from 40px */
+    height: 35px;
+    /* Further reduced from 40px */
     display: flex;
     align-items: center;
     justify-content: flex-end;
     /* padding: 0 10px; */
     flex-shrink: 0;
-    margin-top: 20px;;
+    margin-top: 20px;
+    ;
     /* background-color: #f5f5f5; Light background to distinguish it */
     /* border-top: 1px solid #e0e0e0; /* Add subtle border */
 }
 
 /* Add scrollbar styling */
-#metadataPanel::-webkit-scrollbar, #metadataList::-webkit-scrollbar {
+#metadataPanel::-webkit-scrollbar,
+#metadataList::-webkit-scrollbar {
     width: 8px;
 }
 
-#metadataPanel::-webkit-scrollbar-track, #metadataList::-webkit-scrollbar-track {
+#metadataPanel::-webkit-scrollbar-track,
+#metadataList::-webkit-scrollbar-track {
     background: #f1f1f1;
 }
 
-#metadataPanel::-webkit-scrollbar-thumb, #metadataList::-webkit-scrollbar-thumb {
+#metadataPanel::-webkit-scrollbar-thumb,
+#metadataList::-webkit-scrollbar-thumb {
     background: #888;
     border-radius: 4px;
 }
 
-#metadataPanel::-webkit-scrollbar-thumb:hover, #metadataList::-webkit-scrollbar-thumb:hover {
+#metadataPanel::-webkit-scrollbar-thumb:hover,
+#metadataList::-webkit-scrollbar-thumb:hover {
     background: #555;
 }
 
@@ -263,12 +282,15 @@ button#closeButton svg {
 }
 
 .resolution-container {
-    min-height: 125px; /* 15px */
-    max-height: 125px; /* 80px */
+    min-height: 125px;
+    /* 15px */
+    max-height: 125px;
+    /* 80px */
     overflow-y: auto;
     font-size: 12px;
     color: #333;
-    width: 97%; /* 100% */
+    width: 97%;
+    /* 100% */
     display: block;
     border: 1px solid #eee;
     padding: 5px;
@@ -318,7 +340,7 @@ button#closeButton svg {
 .cache-stats {
     display: flex;
     justify-content: space-between;
-    font-size:11px;
+    font-size: 11px;
     color: #000;
     margin-top: 5px;
 }
@@ -333,11 +355,11 @@ button#closeButton svg {
 /* #cacheHitMissGraph text,
 /* .hit-label,  */
 /* .miss-label { */
-    /* font-family: Arial, sans-serif; Match the font used in the UI */
-    /* font-size: 9px; Match the size of the ratio text */
-    /* font-weight: normal; Normal weight like ratio text */
-    /* fill: #000; Similar color to the ratio text */
-    /* color: #000; For non-SVG elements */
+/* font-family: Arial, sans-serif; Match the font used in the UI */
+/* font-size: 9px; Match the size of the ratio text */
+/* font-weight: normal; Normal weight like ratio text */
+/* fill: #000; Similar color to the ratio text */
+/* color: #000; For non-SVG elements */
 /* } */
 
 .graph-label {
@@ -360,11 +382,16 @@ button#closeButton svg {
 /* If the HIT/MISS text is drawn on canvas, modify the drawing function in popup.js */
 
 /* Make the export buttons more visible */
-button#exportDataButton, button#clearDataButton {
-    height: 28px; /* Explicit height */
-    line-height: 1; /* Proper line height */
-    font-size: 12px; /* Slightly smaller font */
+button#exportDataButton,
+button#clearDataButton {
+    height: 28px;
+    /* Explicit height */
+    line-height: 1;
+    /* Proper line height */
+    font-size: 12px;
+    /* Slightly smaller font */
 }
+
 /* Admin Button styles */
 #adminButton {
     padding: 8px 12px;
@@ -376,12 +403,15 @@ button#exportDataButton, button#clearDataButton {
     height: 28px;
     line-height: 1;
     font-size: 12px;
-    margin-right: auto; /* Push to the left */
+    margin-right: auto;
+    /* Push to the left */
 }
 
 #adminButton:hover {
     background: #e0e0e0;
-}/* Tab System Styles */
+}
+
+/* Tab System Styles */
 .tab-container {
     margin-top: 15px;
     border: 1px solid #ddd;
@@ -421,11 +451,13 @@ button#exportDataButton, button#clearDataButton {
     border-bottom: 2px solid #4CAF50;
 }
 
+/* Find the .tab-content class in styles.css (around line 462) and update it */
 .tab-content {
     background: #fff;
     min-height: 300px;
+    max-height: calc(100vh - 300px); /* Limit height to prevent extending beyond viewport */
     flex-grow: 1;
-    overflow-y: auto;
+    overflow-y: auto; /* Add vertical scrolling */
 }
 
 .tab-pane {
@@ -452,7 +484,8 @@ button#exportDataButton, button#clearDataButton {
     justify-content: flex-end;
     padding: 10px 0;
     position: sticky;
-    bottom: 10px; /* Increased from 0px to 10px to move up from bottom */
+    bottom: 10px;
+    /* Increased from 0px to 10px to move up from bottom */
 }
 
 #placeholderButton {
@@ -465,7 +498,8 @@ button#exportDataButton, button#clearDataButton {
 }
 
 /* Adjust existing components to fit better with tabs */
-.resolutions-section, .cache-metrics-section {
+.resolutions-section,
+.cache-metrics-section {
     margin-top: 10px;
     margin-bottom: 10px;
 }
@@ -527,7 +561,8 @@ button#exportDataButton, button#clearDataButton {
     display: flex;
     justify-content: space-between;
     margin-bottom: 5px;
-    align-items: flex-start;  /* Changed from center to flex-start for better alignment with wrapped content */
+    align-items: flex-start;
+    /* Changed from center to flex-start for better alignment with wrapped content */
 }
 
 .ttl-value {
@@ -539,7 +574,8 @@ button#exportDataButton, button#clearDataButton {
     font-weight: bold;
     color: #1976D2;
     text-align: right;
-    max-width: 60%;  /* Prevent values from pushing labels too far left */
+    max-width: 60%;
+    /* Prevent values from pushing labels too far left */
 }
 
 .ttl-directive {
@@ -559,7 +595,8 @@ button#exportDataButton, button#clearDataButton {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    max-width: 60%;  /* Match the width of ttl-value */
+    max-width: 60%;
+    /* Match the width of ttl-value */
 }
 
 /* SCTE-35 / Ad Tracking Section */
@@ -613,11 +650,11 @@ button#exportDataButton, button#clearDataButton {
 }
 
 .ad-marker {
-    color: #2ecc71; 
+    color: #2ecc71;
 }
 
 .content-marker {
-    color: #e74c3c; 
+    color: #e74c3c;
 }
 
 .scte-info {
@@ -804,12 +841,14 @@ button#exportDataButton, button#clearDataButton {
 }
 
 /* Audio tracks and subtitles styles */
-.audio-track-item, .subtitle-track-item {
+.audio-track-item,
+.subtitle-track-item {
     padding: 4px 0;
     border-bottom: 1px solid #eee;
 }
 
-.audio-track-item:last-child, .subtitle-track-item:last-child {
+.audio-track-item:last-child,
+.subtitle-track-item:last-child {
     border-bottom: none;
 }
 
@@ -876,30 +915,30 @@ button#exportDataButton, button#clearDataButton {
 /* AI Tab */
 .tab-pane#ai-tab {
     display: none;
-  }
-  
-  .tab-pane#ai-tab.active {
+}
+
+.tab-pane#ai-tab.active {
     display: block;
-  }
-  
-  /* AI Analysis Styling */
-  .ai-analysis-section {
+}
+
+/* AI Analysis Styling */
+.ai-analysis-section {
     margin-bottom: 15px;
-  }
-  
-  .ai-analysis-header {
+}
+
+.ai-analysis-header {
     font-weight: bold;
     margin-bottom: 10px;
     font-size: 14px;
-  }
-  
-  .ai-analysis-description {
+}
+
+.ai-analysis-description {
     font-size: 12px;
     color: #666;
     margin-bottom: 10px;
-  }
-  
-  #analyzeCompatibilityBtn {
+}
+
+#analyzeCompatibilityBtn {
     padding: 8px 12px;
     background-color: #4285F4;
     color: white;
@@ -908,18 +947,18 @@ button#exportDataButton, button#clearDataButton {
     cursor: pointer;
     font-size: 13px;
     margin-bottom: 10px;
-  }
-  
-  #analyzeCompatibilityBtn:hover {
+}
+
+#analyzeCompatibilityBtn:hover {
     background-color: #3367D6;
-  }
-  
-  #analyzeCompatibilityBtn:disabled {
+}
+
+#analyzeCompatibilityBtn:disabled {
     background-color: #CCCCCC;
     cursor: not-allowed;
-  }
-  
-  #compatibilityResults {
+}
+
+#compatibilityResults {
     background-color: #f9f9f9;
     border: 1px solid #eee;
     border-radius: 4px;
@@ -928,66 +967,175 @@ button#exportDataButton, button#clearDataButton {
     min-height: 200px;
     max-height: 400px;
     overflow-y: auto;
-  }
-  
-  .analysis-status {
+}
+
+.analysis-status {
     color: #666;
     font-style: italic;
     text-align: center;
     padding: 10px;
-  }
-  
-  .analysis-error {
+}
+
+.analysis-error {
     color: #e74c3c;
     padding: 10px;
     text-align: center;
-  }
-  
-  .platform-result {
+}
+
+.platform-result {
     margin-bottom: 12px;
     padding: 10px;
     border-radius: 4px;
     background-color: #f5f5f5;
     border-left: 4px solid #ccc;
-  }
-  
-  .platform-result.compatible {
+}
+
+.platform-result.compatible {
     border-left-color: #2ecc71;
-  }
-  
-  .platform-result.incompatible {
+}
+
+.platform-result.incompatible {
     border-left-color: #e74c3c;
-  }
-  
-  .platform-header {
+}
+
+.platform-header {
     display: flex;
     justify-content: space-between;
     margin-bottom: 6px;
-  }
-  
-  .platform-name {
+}
+
+.platform-name {
     font-weight: bold;
     font-size: 13px;
-  }
-  
-  .compatibility-badge {
+}
+
+.compatibility-badge {
     font-size: 11px;
     padding: 2px 6px;
     border-radius: 3px;
     font-weight: bold;
-  }
-  
-  .compatibility-badge.compatible {
+}
+
+.compatibility-badge.compatible {
     background-color: #2ecc71;
     color: white;
-  }
-  
-  .compatibility-badge.incompatible {
+}
+
+.compatibility-badge.incompatible {
     background-color: #e74c3c;
     color: white;
-  }
-  
-  .platform-reasoning {
+}
+
+.platform-reasoning {
     font-size: 12px;
     line-height: 1.4;
-  }
+}
+
+/* SCTE-35 Detail Section Styles */
+.scte-detail-section {
+    margin-top: 15px;
+    width: 100%;
+}
+
+.scte-detail-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.scte-detail-container {
+    border: 1px solid #eee;
+    background-color: #f9f9f9;
+    padding: 10px;
+    font-size: 11px;
+    color: #333;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.scte-detail-empty {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 10px 0;
+}
+
+.scte-signal {
+    padding: 5px;
+    margin-bottom: 5px;
+    border-left: 3px solid #ccc;
+    background-color: #f0f0f0;
+}
+
+.scte-signal.ad-start {
+    border-left-color: #2ecc71;
+}
+
+.scte-signal.ad-end {
+    border-left-color: #e74c3c;
+}
+
+.scte-signal-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+    margin-bottom: 3px;
+}
+
+.scte-signal-type {
+    font-size: 12px;
+}
+
+.scte-signal-time {
+    font-size: 10px;
+    color: #666;
+}
+
+.scte-signal-description {
+    font-size: 11px;
+    margin-bottom: 2px;
+}
+
+.scte-signal-details {
+    font-size: 10px;
+    font-family: monospace;
+    margin-top: 3px;
+    color: #555;
+}
+
+/* SCTE Timeline styles */
+.scte-timeline {
+    margin-top: 8px;
+    height: 20px;
+    background-color: #f0f0f0;
+    position: relative;
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.scte-marker-point {
+    position: absolute;
+    width: 2px;
+    height: 20px;
+    background-color: #666;
+}
+
+.scte-marker-point.ad-start {
+    background-color: #2ecc71;
+    width: 3px;
+}
+
+.scte-marker-point.ad-end {
+    background-color: #e74c3c;
+    width: 3px;
+}
+
+/* Toggle button to show SCTE details */
+.scte-detail-toggle {
+    font-size: 11px;
+    color: #1976D2;
+    cursor: pointer;
+    display: inline-block;
+    margin-left: 10px;
+    text-decoration: underline;
+}
