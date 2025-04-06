@@ -18,6 +18,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log(`Attempting to play HLS stream: ${m3u8Src}`);
 
+    const sidePanelButton = document.getElementById('side-panel-button');
+    if (sidePanelButton) {
+        sidePanelButton.addEventListener('click', async () => {
+            console.log('Side panel button clicked');
+            try {
+                // Get the current window
+                const currentWindow = await chrome.windows.getCurrent();
+                if (currentWindow) {
+                    // Open the side panel
+                    await chrome.sidePanel.open({ windowId: currentWindow.id });
+                    console.log('Side panel opened');
+                } else {
+                    console.error('Could not get current window');
+                }
+            } catch (error) {
+                console.error('Error opening side panel:', error);
+            }
+        });
+    } else {
+        console.error('Side panel button not found');
+    }    
+
     if (Hls.isSupported()) {
         console.log("HLS.js is supported. Initializing...");
         const hls = new Hls({
