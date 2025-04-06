@@ -6,67 +6,26 @@ const levelsDisplay = document.getElementById('hlsLevels');
 const currentLevelDisplay = document.getElementById('hlsCurrentLevel');
 const errorsDisplay = document.getElementById('errors');
 
-let currentM3u8Url = null; // Store the URL for context
-
-async function getActiveStreamData() {
-    // Reset UI elements
-    if (!urlDisplay || !statusDisplay || !levelsDisplay || !currentLevelDisplay || !errorsDisplay) {
-        console.error("Required display elements not found.");
-        return;
-    }
-    urlDisplay.textContent = 'Loading...';
-    statusDisplay.textContent = 'Waiting for stream...';
-    levelsDisplay.textContent = 'N/A';
-    currentLevelDisplay.textContent = 'N/A';
-    errorsDisplay.innerHTML = '';
-    currentM3u8Url = null; // Reset context
-
-
-    try {
-        const currentWindow = await chrome.windows.getCurrent();
-        if (!currentWindow) throw new Error("Could not get current window.");
-
-        const [activeTab] = await chrome.tabs.query({ active: true, windowId: currentWindow.id });
-
-        // Check if the active tab's URL seems to be an M3U8 handled by our content script
-        if (activeTab && activeTab.url) {
-            let isM3u8 = false;
-            let potentialUrl = activeTab.url;
-            try {
-                const urlObj = new URL(potentialUrl);
-                if (urlObj.pathname.toLowerCase().endsWith('.m3u8') ||
-                    urlObj.pathname.toLowerCase().includes('.m3u8/') ||
-                    urlObj.pathname.toLowerCase().includes('/.m3u8')) {
-                    isM3u8 = true;
-                }
-            } catch (e) { /* Ignore invalid URLs */ }
-
-            if (isM3u8) {
-                currentM3u8Url = potentialUrl; // Store and display
-                urlDisplay.textContent = currentM3u8Url;
-                statusDisplay.textContent = 'Page loaded, waiting for player...'; // Initial status
-            } else {
-                urlDisplay.textContent = 'N/A (Active tab URL is not .m3u8)';
+// Fetch any stored messages when the panel opens
+function fetchStoredMessages() {
+    chrome.storage.local.get(null, function(items) {
+        console.log("Retrieved stored messages:", items);
+        
+        // Process any stored messages that start with 'latest_'
+        for (const key in items) {
+            if (key.startsWith('latest_')) {
+                const message = items[key];
+                console.log("Processing stored message:", message);
+                processMessage(message);
             }
-        } else {
-            urlDisplay.textContent = 'N/A (Could not get active tab info)';
         }
-    } catch (error) {
-        urlDisplay.textContent = `Error: ${error.message}`;
-        console.error("Error fetching active tab info:", error);
-    }
+    });
 }
 
-// --- Listen for messages from content.js ---
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Message received in side panel:", message);
-
-    // Check if the message is from the tab we are currently displaying info for
-    // if (!currentM3u8Url || !sender.tab || sender.tab.url !== currentM3u8Url) {
-    //     // console.log("Ignoring message, not from the active M3U8 tab:", sender.tab?.url);
-    //     return; // Ignore messages not from the relevant tab
-    // }
-
+// Process incoming messages
+function processMessage(message) {
+    console.log("Processing message in side panel:", message);
+    
     try {
         switch (message.type) {
             case "HLS_MANIFEST_DATA":
@@ -78,80 +37,111 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 }
                 currentLevelDisplay.textContent = "Initial";
                 errorsDisplay.innerHTML = '';
+                
+                // Update URL display if we have it
+                if (message.payload.url) {
+                    urlDisplay.textContent = message.payload.url;
+                }
                 break;
-            
-            // Rest of the switch case remains the same
-            // ...
+
+            case "HLS_LEVEL_SWITCH":
+                if (message.payload.height && message.payload.bitrate) {
+                    currentLevelDisplay.textContent = `${message.payload.height}p @ ${(message.payload.bitrate / 1000).toFixed(0)}kbps`;
+                }
+                break;
+
+            case "NATIVE_HLS_PLAYBACK":
+                statusDisplay.textContent = "Playing (Native)";
+                levelsDisplay.textContent = "N/A (Native)";
+                currentLevelDisplay.textContent = "N/A (Native)";
+                
+                // Update URL display if we have it
+                if (message.payload.url) {
+                    urlDisplay.textContent = message.payload.url;
+                }
+                break;
+
+            case "HLS_NOT_SUPPORTED":
+                statusDisplay.textContent = "Error";
+                errorsDisplay.innerHTML = `<p>HLS Not Supported by browser.</p>`;
+                
+                // Update URL display if we have it
+                if (message.payload.url) {
+                    urlDisplay.textContent = message.payload.url;
+                }
+                break;
+
+            case "HLS_ERROR":
+                statusDisplay.textContent = "Error";
+                let errorMsg = `HLS Error: Type=${message.payload.type}, Details=${message.payload.details}`;
+                if (message.payload.url) { errorMsg += `, URL=${message.payload.url}`; }
+                const errorElement = document.createElement('p');
+                errorElement.textContent = errorMsg;
+                errorsDisplay.appendChild(errorElement);
+                break;
         }
     } catch (e) {
         console.error("Error processing message in side panel:", e);
     }
-
-    // try {
-    //     switch (message.type) {
-    //         case "HLS_MANIFEST_DATA":
-    //             statusDisplay.textContent = "Playing";
-    //             if (message.payload.levels && message.payload.levels.length > 0) {
-    //                 levelsDisplay.textContent = message.payload.levels.map(l => `${l.height}p`).join(', ');
-    //             } else {
-    //                 levelsDisplay.textContent = "Single level";
-    //             }
-    //             currentLevelDisplay.textContent = "Initial";
-    //             errorsDisplay.innerHTML = '';
-    //             break;
-
-    //         case "HLS_LEVEL_SWITCH":
-    //             currentLevelDisplay.textContent = `${message.payload.height}p @ ${(message.payload.bitrate / 1000).toFixed(0)}kbps`;
-    //             break;
-
-    //         case "NATIVE_HLS_PLAYBACK":
-    //             statusDisplay.textContent = "Playing (Native)";
-    //             levelsDisplay.textContent = "N/A (Native)";
-    //             currentLevelDisplay.textContent = "N/A (Native)";
-    //             break;
-
-    //         case "HLS_NOT_SUPPORTED":
-    //             statusDisplay.textContent = "Error";
-    //             errorsDisplay.innerHTML = `<p>HLS Not Supported by browser.</p>`;
-    //             break;
-
-    //         case "HLS_ERROR":
-    //             statusDisplay.textContent = "Error";
-    //             let errorMsg = `HLS Error: Type=${message.payload.type}, Details=${message.payload.details}`;
-    //             if (message.payload.url) { errorMsg += `, URL=${message.payload.url}`; }
-    //             const errorElement = document.createElement('p');
-    //             errorElement.textContent = errorMsg;
-    //             errorsDisplay.appendChild(errorElement);
-    //             break;
-    //     }
-    // } catch (e) {
-    //     console.error("Error processing message in side panel:", e);
-    // }
-});
-
-// --- Run when the panel loads or updates ---
-function initializePanel() {
-    getActiveStreamData();
 }
 
+// Listen for runtime messages
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    console.log("Message received in side panel:", message);
+    processMessage(message);
+    return false; // Don't keep channel open
+});
+
+// Get the active tab information when the panel opens
+async function getActiveTabInfo() {
+    try {
+        const currentWindow = await chrome.windows.getCurrent();
+        if (!currentWindow) throw new Error("Could not get current window.");
+
+        const [activeTab] = await chrome.tabs.query({ active: true, windowId: currentWindow.id });
+        console.log("Active tab:", activeTab);
+        
+        if (activeTab && activeTab.url) {
+            if (activeTab.url.includes('.m3u8') || activeTab.url.includes('player.html')) {
+                urlDisplay.textContent = activeTab.url;
+                statusDisplay.textContent = 'Page loaded, waiting for player...';
+            } else {
+                urlDisplay.textContent = 'N/A (Active tab URL is not .m3u8)';
+            }
+        } else {
+            urlDisplay.textContent = 'N/A (Could not get active tab info)';
+        }
+    } catch (error) {
+        console.error("Error fetching active tab info:", error);
+        urlDisplay.textContent = `Error: ${error.message}`;
+    }
+}
+
+// Initialize panel
+function initializePanel() {
+    console.log("Initializing side panel");
+    // Reset UI
+    urlDisplay.textContent = 'Loading...';
+    statusDisplay.textContent = 'Waiting for stream...';
+    levelsDisplay.textContent = 'N/A';
+    currentLevelDisplay.textContent = 'N/A';
+    errorsDisplay.innerHTML = '';
+    
+    // Get active tab info
+    getActiveTabInfo();
+    
+    // Fetch any stored messages
+    fetchStoredMessages();
+}
+
+// Initialize panel when loaded
 document.addEventListener('DOMContentLoaded', initializePanel);
 
-// Add listeners for tab updates/activation to re-initialize if context changes
+// Add listeners for tab updates/activation
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    chrome.windows.getCurrent(async (currentWindow) => {
-        if (!currentWindow) return;
-        const [activeTab] = await chrome.tabs.query({ active: true, windowId: currentWindow.id });
-        if (activeTab && tabId === activeTab.id && (changeInfo.status === 'complete' || changeInfo.url)) {
-            initializePanel();
-        }
-    });
+    initializePanel();
 });
+
 chrome.tabs.onActivated.addListener(activeInfo => {
-    chrome.windows.getCurrent(async (currentWindow) => {
-        if (!currentWindow) return;
-        const [activeTab] = await chrome.tabs.query({ active: true, windowId: currentWindow.id });
-        if (activeTab && activeInfo.windowId === currentWindow.id) {
-            initializePanel();
-        }
-    });
+    initializePanel();
 });

@@ -101,15 +101,27 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-// Add this to background.js
-// --- Message Relay for Side Panel Communication ---
+// --- Message Relay System for Side Panel Communication ---
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Background received message:", message);
-    // Relay all messages to ensure they reach the side panel
-    chrome.runtime.sendMessage(message).catch(err => {
-        console.log("Error relaying message:", err);
+  console.log("Background received message:", message);
+  
+  // Store the latest message of each type to provide to the side panel when it connects
+  if (message.type) {
+    // Store this message in local storage for the side panel to retrieve
+    chrome.storage.local.set({
+      [`latest_${message.type}`]: message
+    }, function() {
+      console.log(`Stored latest ${message.type} message in local storage`);
     });
-    return false; // Don't keep the message channel open
+  }
+  
+  // Relay all messages to other extension components (like the side panel)
+  chrome.runtime.sendMessage(message).catch(err => {
+    // This error is expected if the side panel is not open yet, so we can safely ignore it
+    console.log("Error relaying message (side panel may not be open yet)");
+  });
+  
+  return false; // Don't keep message channel open
 });
 
 console.log("Background script ready.");
