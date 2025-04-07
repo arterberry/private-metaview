@@ -1,47 +1,60 @@
 console.log("VIDINFRA HLS MetaPlayer Side panel script loaded.");
 
+// DOM references
 const urlDisplay = document.getElementById('m3u8Url');
 const statusDisplay = document.getElementById('hlsStatus');
 const levelsDisplay = document.getElementById('hlsLevels');
 const currentLevelDisplay = document.getElementById('hlsCurrentLevel');
 const errorsDisplay = document.getElementById('errors');
 
-// Fetch any stored messages when the panel opens
+// Validate required DOM elements
+if (!urlDisplay || !statusDisplay || !levelsDisplay || !currentLevelDisplay || !errorsDisplay) {
+    console.error("Missing one or more required DOM elements in side_panel.html");
+}
+
+// Fetch messages from storage when panel opens
 function fetchStoredMessages() {
-    chrome.storage.local.get(null, function(items) {
+    chrome.storage.local.get(null, function (items) {
+        if (chrome.runtime.lastError) {
+            console.error("Error retrieving stored messages:", chrome.runtime.lastError.message);
+            return;
+        }
+
         console.log("Retrieved stored messages:", items);
-        
-        // Process any stored messages that start with 'latest_'
+
         for (const key in items) {
             if (key.startsWith('latest_')) {
                 const message = items[key];
-                console.log("Processing stored message:", message);
                 processMessage(message);
             }
         }
     });
 }
 
-// Process incoming messages
+// Runtime message listener
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (!message || typeof message !== 'object') return false;
+
+    console.log("Message received in side panel:", message);
+    processMessage(message);
+    return false;
+});
+
+// Process structured messages
 function processMessage(message) {
-    console.log("Processing message in side panel:", message);
-    
+    if (!message || typeof message !== 'object' || !message.type || !message.payload) {
+        console.warn("Invalid message received, skipping:", message);
+        return;
+    }
+
     try {
         switch (message.type) {
             case "HLS_MANIFEST_DATA":
-                statusDisplay.textContent = "Playing";
-                if (message.payload.levels && message.payload.levels.length > 0) {
-                    levelsDisplay.textContent = message.payload.levels.map(l => `${l.height}p`).join(', ');
-                } else {
-                    levelsDisplay.textContent = "Single level";
-                }
+                setStatus("Playing");
+                setLevels(message.payload.levels);
                 currentLevelDisplay.textContent = "Initial";
                 errorsDisplay.innerHTML = '';
-                
-                // Update URL display if we have it
-                if (message.payload.url) {
-                    urlDisplay.textContent = message.payload.url;
-                }
+                updateUrl(message.payload.url);
                 break;
 
             case "HLS_LEVEL_SWITCH":
@@ -51,97 +64,111 @@ function processMessage(message) {
                 break;
 
             case "NATIVE_HLS_PLAYBACK":
-                statusDisplay.textContent = "Playing (Native)";
+                setStatus("Playing (Native)");
                 levelsDisplay.textContent = "N/A (Native)";
                 currentLevelDisplay.textContent = "N/A (Native)";
-                
-                // Update URL display if we have it
-                if (message.payload.url) {
-                    urlDisplay.textContent = message.payload.url;
-                }
+                updateUrl(message.payload.url);
                 break;
 
             case "HLS_NOT_SUPPORTED":
-                statusDisplay.textContent = "Error";
+                setStatus("Error");
                 errorsDisplay.innerHTML = `<p>HLS Not Supported by browser.</p>`;
-                
-                // Update URL display if we have it
-                if (message.payload.url) {
-                    urlDisplay.textContent = message.payload.url;
-                }
+                updateUrl(message.payload.url);
                 break;
 
             case "HLS_ERROR":
-                statusDisplay.textContent = "Error";
-                let errorMsg = `HLS Error: Type=${message.payload.type}, Details=${message.payload.details}`;
-                if (message.payload.url) { errorMsg += `, URL=${message.payload.url}`; }
-                const errorElement = document.createElement('p');
-                errorElement.textContent = errorMsg;
-                errorsDisplay.appendChild(errorElement);
+                setStatus("Error");
+                displayErrorDetails(message.payload);
                 break;
+
+            default:
+                console.warn("Unhandled message type:", message.type);
         }
-    } catch (e) {
-        console.error("Error processing message in side panel:", e);
+    } catch (err) {
+        console.error("Exception while processing message:", err);
     }
 }
 
-// Listen for runtime messages
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log("Message received in side panel:", message);
-    processMessage(message);
-    return false; // Don't keep channel open
-});
-
-// Get the active tab information when the panel opens
+// Get active tab URL and update initial UI
 async function getActiveTabInfo() {
     try {
         const currentWindow = await chrome.windows.getCurrent();
-        if (!currentWindow) throw new Error("Could not get current window.");
+        if (!currentWindow) throw new Error("Could not get current window");
 
         const [activeTab] = await chrome.tabs.query({ active: true, windowId: currentWindow.id });
         console.log("Active tab:", activeTab);
-        
+
         if (activeTab && activeTab.url) {
+            updateUrl(activeTab.url);
+
             if (activeTab.url.includes('.m3u8') || activeTab.url.includes('player.html')) {
-                urlDisplay.textContent = activeTab.url;
-                statusDisplay.textContent = 'Page loaded, waiting for player...';
+                if (statusDisplay.textContent === 'Waiting for stream...') {
+                    setStatus("Page loaded");
+                }
             } else {
-                urlDisplay.textContent = 'N/A (Active tab URL is not .m3u8)';
+                setStatus("N/A");
             }
         } else {
-            urlDisplay.textContent = 'N/A (Could not get active tab info)';
+            updateUrl('N/A (Could not retrieve tab)');
         }
-    } catch (error) {
-        console.error("Error fetching active tab info:", error);
-        urlDisplay.textContent = `Error: ${error.message}`;
+    } catch (err) {
+        console.error("Error retrieving tab info:", err);
+        updateUrl(`Error: ${err.message}`);
     }
 }
 
-// Initialize panel
+// UI update helpers
+function setStatus(text) {
+    if (statusDisplay) statusDisplay.textContent = text;
+}
+
+function updateUrl(text) {
+    if (urlDisplay && text) urlDisplay.textContent = text;
+}
+
+function setLevels(levels) {
+    if (!Array.isArray(levels)) {
+        levelsDisplay.textContent = "Unknown";
+        return;
+    }
+
+    levelsDisplay.textContent = levels.length > 0
+        ? levels.map(l => `${l.height}p`).join(', ')
+        : "Single level";
+}
+
+function displayErrorDetails(payload) {
+    if (!payload || typeof payload !== 'object') return;
+
+    let errorMsg = `HLS Error: Type=${payload.type}, Details=${payload.details}`;
+    if (payload.url) errorMsg += `, URL=${payload.url}`;
+
+    const errorElement = document.createElement('p');
+    errorElement.textContent = errorMsg;
+    errorsDisplay.appendChild(errorElement);
+}
+
+// Initialize the side panel
 function initializePanel() {
     console.log("Initializing side panel");
-    // Reset UI
-    urlDisplay.textContent = 'Loading...';
-    statusDisplay.textContent = 'Waiting for stream...';
-    levelsDisplay.textContent = 'N/A';
-    currentLevelDisplay.textContent = 'N/A';
+
+    setStatus("Waiting for stream...");
+    updateUrl("Loading...");
+    levelsDisplay.textContent = "N/A";
+    currentLevelDisplay.textContent = "N/A";
     errorsDisplay.innerHTML = '';
-    
-    // Get active tab info
+
     getActiveTabInfo();
-    
-    // Fetch any stored messages
     fetchStoredMessages();
 }
 
-// Initialize panel when loaded
+// Initialize once DOM is ready
 document.addEventListener('DOMContentLoaded', initializePanel);
 
-// Add listeners for tab updates/activation
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+// Re-initialize on tab updates and activations
+chrome.tabs.onUpdated.addListener(() => {
     initializePanel();
 });
-
-chrome.tabs.onActivated.addListener(activeInfo => {
+chrome.tabs.onActivated.addListener(() => {
     initializePanel();
 });

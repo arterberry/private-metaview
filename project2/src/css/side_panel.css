@@ -1,0 +1,40 @@
+body {
+    padding: 10px;
+    font-family: sans-serif;
+    font-size: 14px;
+    background-color: #fff;
+    color: #000;
+    margin: 0;
+}
+
+h1 {
+    font-size: 1.2em;
+    margin-top: 0;
+}
+
+.label {
+    font-weight: bold;
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: #f0f0f0;
+    padding: 6px;
+    border-radius: 3px;
+    font-size: 0.9em;
+    line-height: 1.4;
+    border: 1px solid #ccc;
+}
+
+#hlsInfo div {
+    margin-bottom: 6px;
+}
+
+#errors {
+    color: #d00;
+    font-weight: bold;
+    margin-top: 12px;
+}

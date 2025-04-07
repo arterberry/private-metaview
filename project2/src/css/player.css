@@ -335,6 +335,7 @@ video {
     font-family: monospace;
     font-size: 11px;
     box-sizing: border-box;
+    padding: 6px;
 }
 
 .metadata_tab-paneUpdate.active {
@@ -360,6 +361,7 @@ video {
     font-family: monospace;
     font-size: 11px;
     box-sizing: border-box;
+    padding: 6px;
 }
 
 .metadata_tab-paneBodyUpdate.active {

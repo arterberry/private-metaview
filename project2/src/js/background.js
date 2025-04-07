@@ -1,6 +1,5 @@
 console.log("VIDINFRA HLS MetaPlayer - Background Script Loaded.");
 
-// Define function to detect M3U8 URLs
 function isM3u8Url(url) {
   try {
     const urlObj = new URL(url);
@@ -13,115 +12,96 @@ function isM3u8Url(url) {
       urlObj.hash.toLowerCase().includes('format=m3u8')
     );
   } catch (e) {
-    return false; // Invalid URL
+    return false;
   }
 }
 
-// Set up declarativeNetRequest rules to intercept M3U8 URLs
+// Set up redirect rule for .m3u8 URLs
 chrome.runtime.onInstalled.addListener(() => {
-  // Remove any existing rules
-  chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: [1]
-  }).then(() => {
-    // Add our rule to redirect M3U8 URLs to our player
-    chrome.declarativeNetRequest.updateDynamicRules({
-      addRules: [{
-        id: 1,
-        priority: 1,
-        action: {
-          type: 'redirect',
-          redirect: {
-            // Using url pattern capturing instead of transform
-            regexSubstitution: chrome.runtime.getURL('player.html') + '?src=\\0'
+  chrome.declarativeNetRequest.updateDynamicRules({ removeRuleIds: [1] })
+    .then(() => {
+      chrome.declarativeNetRequest.updateDynamicRules({
+        addRules: [{
+          id: 1,
+          priority: 1,
+          action: {
+            type: 'redirect',
+            redirect: {
+              regexSubstitution: chrome.runtime.getURL('player.html') + '?src=\\0'
+            }
+          },
+          condition: {
+            regexFilter: ".*\\.m3u8.*",
+            resourceTypes: ['main_frame']
           }
-        },
-        condition: {
-          regexFilter: ".*\\.m3u8.*",
-          resourceTypes: ['main_frame']
-        }
-      }]
-    }).catch(error => {
-      console.error("Error setting up declarativeNetRequest rules:", error);
+        }]
+      });
+    })
+    .catch(error => {
+      console.error("Error setting up redirect rules:", error);
     });
-  });
 });
 
-// --- Enable Side Panel when tab URL is .m3u8 ---
+// Enable side panel only for player.html or .m3u8 URLs
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-  // Check if tab is complete and URL is M3U8
   if (changeInfo.status === 'complete' && tab.url) {
-    // Check if this is our player page
-    if (tab.url.startsWith(chrome.runtime.getURL('player.html'))) {
-      // This is our player page, enable the side panel
-      try {
-        await chrome.sidePanel.setOptions({
-          tabId: tabId,
-          enabled: true
-        });
-        console.log(`Side panel ENABLED for M3U8 player tab ${tabId}.`);
-      } catch (error) {
-        console.error(`Error enabling side panel for tab ${tabId}:`, error);
-      }
-    } else if (isM3u8Url(tab.url)) {
-      // This is a direct M3U8 URL that wasn't redirected (should be rare with our rules)
-      console.log(`M3U8 URL detected on completed tab ${tabId} but not redirected: ${tab.url}`);
-      try {
-        await chrome.sidePanel.setOptions({
-          tabId: tabId,
-          enabled: true
-        });
-        console.log(`Side panel ENABLED for direct M3U8 tab ${tabId}.`);
-      } catch (error) {
-        console.error(`Error enabling side panel for tab ${tabId}:`, error);
-      }
-    } else {
-      // Not an M3U8 URL, disable the side panel if it was enabled
-      try {
+    const isPlayerPage = tab.url.startsWith(chrome.runtime.getURL('player.html'));
+    const isStreamUrl = isM3u8Url(tab.url);
+
+    try {
+      if (isPlayerPage || isStreamUrl) {
+        await chrome.sidePanel.setOptions({ tabId, enabled: true });
+        console.log(`Side panel ENABLED for tab ${tabId}`);
+      } else {
         const currentOptions = await chrome.sidePanel.getOptions({ tabId });
         if (currentOptions.enabled) {
-          await chrome.sidePanel.setOptions({ tabId: tabId, enabled: false });
-          console.log(`Side panel disabled for non-M3U8 tab ${tabId}.`);
+          await chrome.sidePanel.setOptions({ tabId, enabled: false });
+          console.log(`Side panel DISABLED for tab ${tabId}`);
         }
-      } catch (error) { /* Ignore */ }
+      }
+    } catch (err) {
+      console.error(`Error updating side panel options for tab ${tabId}:`, err);
     }
   }
 });
 
-// --- Handle Toolbar Icon Click (Opens the panel) ---
+// Handle toolbar icon click
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.windowId) {
-    console.log(`Action icon clicked for tab: ${tab.id}. Attempting to open side panel.`);
     try {
       await chrome.sidePanel.open({ windowId: tab.windowId });
+      console.log(`Opened side panel for window ${tab.windowId}`);
     } catch (error) {
       console.error("Error opening side panel:", error);
     }
   } else {
-    console.error("Cannot open side panel, windowId not found on tab.");
+    console.error("No windowId found for toolbar click");
   }
 });
 
-// --- Message Relay System for Side Panel Communication ---
+// Store latest message per type and attempt to relay
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("Background received message:", message);
-  
-  // Store the latest message of each type to provide to the side panel when it connects
-  if (message.type) {
-    // Store this message in local storage for the side panel to retrieve
-    chrome.storage.local.set({
-      [`latest_${message.type}`]: message
-    }, function() {
-      console.log(`Stored latest ${message.type} message in local storage`);
+
+  if (!message || !message.type) return;
+
+  // Store in local storage for later retrieval
+  chrome.storage.local.set({
+    [`latest_${message.type}`]: message
+  }, () => {
+    if (chrome.runtime.lastError) {
+      console.error("Failed to store message:", chrome.runtime.lastError.message);
+    } else {
+      console.log(`Stored latest_${message.type} message`);
+    }
+  });
+
+  // Relay only if it came from a tab context (e.g. player, content script)
+  if (sender.tab) {
+    chrome.runtime.sendMessage(message).catch(err => {
+      console.warn("Relay failed — likely no listeners ready:", err.message);
     });
   }
-  
-  // Relay all messages to other extension components (like the side panel)
-  chrome.runtime.sendMessage(message).catch(err => {
-    // This error is expected if the side panel is not open yet, so we can safely ignore it
-    console.log("Error relaying message (side panel may not be open yet)");
-  });
-  
-  return false; // Don't keep message channel open
-});
 
-console.log("Background script ready.");
+  return false;
+});

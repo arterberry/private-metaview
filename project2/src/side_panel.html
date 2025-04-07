@@ -1,19 +1,12 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>HLS Info</title>
-    <style>
-        body { padding: 10px; font-family: sans-serif; font-size: 14px; }
-        h1 { font-size: 1.2em; margin-top: 0; }
-        pre { white-space: pre-wrap; word-wrap: break-word; background-color: #f0f0f0; padding: 5px; border-radius: 3px; font-size: 0.9em; line-height: 1.4; }
-        .label { font-weight: bold; margin-top: 8px; }
-        #hlsInfo div { margin-bottom: 5px; }
-        #errors { color: red; font-weight: bold; margin-top: 10px; }
-    </style>
+    <title>VIDINFRA HLS MetaPlayer</title>
+    <link rel="stylesheet" href="css/side_panel.css">
 </head>
 <body>
-    <h1>HLS Stream Info</h1>
+    <h1>VIDINFRA HLS MetaPlayer</h1>
 
     <div class="label">Stream URL:</div>
     <pre id="m3u8Url">Loading...</pre>
@@ -25,6 +18,8 @@
         <div>Current Level: <span id="hlsCurrentLevel">N/A</span></div>
     </div>
 
-    <div id="errors"></div> <script src="js/side_panel.js"></script>
+    <div id="errors"></div>
+
+    <script src="js/side_panel.js"></script>
 </body>
 </html>
