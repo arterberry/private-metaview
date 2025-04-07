@@ -21,28 +21,41 @@
             </button>
         </div>
 
-        <!-- Add to player.html -->
-        <div class="metadata-section">
-            <div class="resize-handle" id="resizeHandle"></div>
-            <div class="metadata-header">
-                <span>Stream Metadata</span>
-            </div>
-            <div id="metadataContainer">
-                <div id="metadataPanel">
-                    <div id="metadataList"></div>
-                </div>
-                <div id="resizeHandleVertical"></div>
-                <div id="headerPanel">
-                    <div class="panel-header">Response Headers</div>
-                    <pre id="headerContent">Select a segment to view headers</pre>
-                </div>
-            </div>
-            <div class="status-bar" id="statusBar">Ready</div>
+        <!-- Updated HTML for side_panel.html -->
+        <div class="metadata-header">
+            <span></span> <!-- Empty for now, will contain other data later -->
         </div>
+
+        <div id="metadataResizeHandle"></div>
+
+        <div id="metadataContainer">
+            <div id="metadataPanel">
+                <div id="metadataList"></div>
+            </div>
+            
+            <div id="responsePanel">
+                <div class="metadata_tab-container">
+                    <div class="metadata_tab-buttons">
+                        <button class="metadata_tab-button active" data-tab="headers">Response Headers</button>
+                        <button class="metadata_tab-button" data-tab="body">Response Body</button>
+                    </div>
+                    <div class="metadata_tab-content">
+                        <div id="headers-tab" class="metadata_tab-pane active">
+                            <pre id="headerContent">Select a segment to view headers</pre>
+                        </div>
+                        <div id="body-tab" class="metadata_tab-pane">
+                            <pre id="bodyContent">Select a segment to view response body</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="status-bar" id="statusBar"></div>
     </div>
 
     <script src="hls.min.js"></script>
-    <script src="metadata.js"></script>
+    
     <script src="player.js"></script>
 </body>
 

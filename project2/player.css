@@ -69,11 +69,11 @@ video {
 .metadata-section {
     position: relative;
     width: 100%;
-    height: 30%; /* Takes up 30% of the height initially */
-    min-height: 100px; /* Minimum height */
+    height: 30%; 
+    min-height: 100px;
     display: flex;
     flex-direction: column;
-    background-color: #121212; /* Darker background matching screenshot */
+    background-color: #121212; 
     color: #f0f0f0;
     border-top: 1px solid #333;
 }
@@ -93,17 +93,29 @@ video {
     background-color: #555;
 }
 
+/* Header above metadata section */
 .metadata-header {
     padding: 8px 12px;
-    background-color: #121212; /* Matching screenshot */
+    background-color: #121212;
     font-weight: bold;
     border-bottom: 1px solid #333;
+    height: 20px; 
 }
 
-#metadataPanel {
+/* Main container for metadata and response panels */
+#metadataContainer {
+    display: flex;
     flex: 1;
+    overflow: hidden;
+    height: calc(100% - 40px);
+}
+
+/* Left panel for metadata list */
+#metadataPanel {
+    flex: 0 0 50%; 
+    min-width: 200px;
     overflow-y: auto;
-    background-color: #000; /* Black background matching screenshot */
+    background-color: #000; 
 }
 
 #metadataList {
@@ -117,14 +129,211 @@ video {
     font-size: 12px;
     white-space: pre-wrap;
     word-wrap: break-word;
-    color: #ccc; /* Light gray text matching screenshot */
+    color: #ccc; 
+    cursor: pointer;
 }
 
 /* Style for timestamps in metadata */
 #metadataList div span {
-    color: #666; /* Darker gray for timestamps */
+    color: #666; 
     margin-right: 5px;
 }
+
+#metadataList div:hover {
+    background-color: #222;
+}
+
+#metadataList div.selected {
+    background-color: #1a3c5f;
+}
+
+/* Vertical resize handle */
+#resizeHandleVertical {
+    width: 5px;
+    cursor: ew-resize;
+    background-color: #333;
+    flex: 0 0 5px; 
+}
+
+#resizeHandleVertical:hover {
+    background-color: #555;
+}
+
+#metadataResizeHandle {
+    height: 6px;
+    background-color: #444;
+    cursor: ns-resize;
+    z-index: 10;
+}
+
+#responsePanel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #0a0a0a;
+    min-width: 200px;
+    border-left: 1px solid #333;
+}
+
+/* Tab navigation styling */
+.metadata_tab-buttons {
+    display: flex;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid #333;
+}
+
+.metadata_tab-button {
+    padding: 8px 12px;
+    background-color: transparent;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.metadata_tab-button:hover {
+    background-color: #252525;
+}
+
+.metadata_tab-button.active {
+    background-color: #0a0a0a;
+    border-bottom: 2px solid #4285f4;
+    color: #fff;
+}
+
+/* --- Headers tab pane --- */
+#headers-tab.metadata_tab-pane {
+    display: none;
+    overflow-y: auto;
+    flex: 1;
+    background-color: #0a0a0a;
+}
+
+/* Scrollbars specific to headers */
+#headers-tab::-webkit-scrollbar {
+    width: 8px;
+}
+#headers-tab::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+#headers-tab {
+    scrollbar-width: thin; /* Firefox */
+}
+
+/* Show active */
+#headers-tab.metadata_tab-pane.active {
+    display: block;
+}
+
+.metadata_tab-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #0a0a0a;
+}
+
+/* Base styles for inactive tab panes */
+.metadata_tab-pane {
+    display: none;
+    height: 100%; /* Take full height */
+    background-color: #0a0a0a;
+    color: #ccc;
+    font-family: monospace;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+/* Style for active tab panes */
+.metadata_tab-pane.active {
+    display: block;
+    overflow: auto; 
+    height: 100%;
+}
+
+/* Scrollbar styling */
+#body-tab::-webkit-scrollbar {
+    width: 8px;
+    display: block;
+}
+
+#body-tab::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+
+/* Body pane specific styles to ensure scrollbars */
+#body-tab {
+    overflow-y: scroll !important; 
+    scrollbar-width: thin; 
+}
+
+/* --- Body tab pane --- */
+#body-tab.metadata_tab-pane {
+    display: none;
+    flex: 1;
+    overflow-y: auto;
+    background-color: #0a0a0a;
+    scrollbar-width: thin;
+}
+
+/* Scrollbars specific to body */
+#body-tab::-webkit-scrollbar {
+    width: 8px;
+}
+#body-tab::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+
+/* Show active */
+#body-tab.metadata_tab-pane.active {
+    display: block;
+}
+
+
+#headerContent {
+    padding: 8px;
+    margin: 0;
+    font-family: monospace;
+    font-size: 11px;
+    color: #ccc;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-sizing: border-box;
+}
+
+#bodyContent {
+    background-color: rgb(64, 64, 64) !important;
+    height: 3000px !important;               /* ✅ Fixed height, scroll always possible */
+    overflow-y: auto !important;            /* ✅ Force scroll, even if not needed */
+    display: block !important;              /* ✅ Ignore flex parents */
+    position: relative !important;          /* ✅ Break from flow if needed */
+    z-index: 1;                              /* Just in case a parent hides it */
+
+    /* Visual / text styles */
+    padding: 8px;
+    margin: 0;
+    font-family: monospace;
+    font-size: 11px;
+    color: #ccc;
+    white-space: pre-wrap;
+    word-break: break-word;
+    box-sizing: border-box;
+}
+
+/* Optional: Scrollbar for WebKit */
+#bodyContent::-webkit-scrollbar {
+    width: 8px;
+}
+#bodyContent::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 4px;
+}
+
+
 
 /* Status bar */
 .status-bar {
@@ -137,29 +346,7 @@ video {
     align-items: center;
 }
 
-/* Add to player.css */
-#metadataContainer {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-}
-
-#metadataPanel {
-    flex: 3;
-    overflow-y: auto;
-    background-color: #000;
-    min-width: 200px;
-}
-
-#headerPanel {
-    flex: 2;
-    display: flex;
-    flex-direction: column;
-    background-color: #0a0a0a;
-    min-width: 200px;
-    border-left: 1px solid #333;
-}
-
+/* Legacy panel header (keeping for compatibility) */
 .panel-header {
     padding: 8px 12px;
     background-color: #121212;
@@ -168,48 +355,12 @@ video {
     border-bottom: 1px solid #333;
 }
 
-#headerContent {
-    flex: 1;
-    overflow: auto;
-    margin: 0;
-    padding: 8px;
-    font-family: monospace;
-    font-size: 11px;
-    color: #ccc;
-    background-color: #0a0a0a;
-    white-space: pre-wrap;
-    word-break: break-word;
-}
-
-#resizeHandleVertical {
-    width: 4px;
-    cursor: ew-resize;
-    background-color: #333;
-}
-
-#resizeHandleVertical:hover {
-    background-color: #555;
-}
-
-/* Ensure metadata items are clickable and highlight on hover */
-#metadataList div {
-    cursor: pointer;
-}
-
-#metadataList div:hover {
-    background-color: #222;
-}
-
-#metadataList div.selected {
-    background-color: #1a3c5f;
-}
-
 /* Responsive adjustments */
 @media (max-height: 600px) {
     .video-container {
         height: 60%;
     }
-    
+
     .metadata-section {
         height: 40%;
     }
