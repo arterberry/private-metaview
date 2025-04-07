@@ -3,9 +3,7 @@
 // Now also supports displaying selected segment's headers/body in right panel tabs.
 
 console.log("Enhanced HLS Feed Segment Viewer Loaded");
-
 document.addEventListener('DOMContentLoaded', () => {
-
 
     const sidePanelButton = document.getElementById('side-panel-button');
     if (sidePanelButton) {
@@ -15,16 +13,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const currentWindow = await chrome.windows.getCurrent();
                 if (currentWindow) {
                     await chrome.sidePanel.open({ windowId: currentWindow.id });
-                    console.log('✅ Side panel opened');
+                    console.log('Side panel opened');
                 } else {
-                    console.error('❌ Could not get current window');
+                    console.error('Could not get current window');
                 }
             } catch (error) {
-                console.error('🚫 Error opening side panel:', error);
+                console.error('Error opening side panel:', error);
             }
         });
     } else {
-        console.warn('⚠️ Side panel button not found in DOM');
+        console.warn('Side panel button not found in DOM');
     }
     
     const metadataContainer = document.getElementById('metadataContainer');
@@ -57,11 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
         metadataContainer.style.height = `${newHeight}px`;
         videoContainer.style.height = `calc(100% - ${newHeight}px)`;
     
-        console.log('🟡 Resizing...');
+        console.log('Resizing...');
     });
     
     window.addEventListener('pointerup', () => {
-        if (isDragging) console.log('🔴 Drag stopped');
+        if (isDragging) console.log('Drag stopped');
         isDragging = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
@@ -93,25 +91,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         metadataPanel.style.width = `${newWidth}px`;
         metadataPanel.style.flex = `0 0 ${newWidth}px`;
-        console.log('↔️ Resizing horizontal...');
+        console.log('↔Resizing horizontal...');
     });
 
     window.addEventListener('pointerup', () => {
         if (isResizingHorizontally) {
-            console.log('✅ Horizontal drag complete');
+            console.log('Horizontal drag complete');
         }
 
         isResizingHorizontally = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
-    });
-
-    
+    });    
 
     const video = document.getElementById('hlsVideoPlayer');
     const metadataList = document.getElementById("metadataList");
-    // const headerContent = document.getElementById("headerContent");
-    // const bodyContent = document.getElementById("bodyContent");
     const urlParams = new URLSearchParams(window.location.search);
     const m3u8Src = urlParams.get('src');
 

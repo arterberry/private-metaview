@@ -1,8 +1,13 @@
 {
     "manifest_version": 3,
-    "name": "HLS Player & Side Panel (Content Script)",
+    "name": "VIDINFRA MetaPlayer",
     "version": "1.1",
     "description": "Plays .m3u8 URLs directly via content script and provides a side panel.",
+    "icons": {
+      "16": "images/icon16.png",
+      "48": "images/icon48.png",
+      "128": "images/icon128.png"
+    },
     "permissions": [
       "sidePanel",
       "tabs",
@@ -18,7 +23,12 @@
       "service_worker": "background.js"
     },
     "action": {
-      "default_title": "Open HLS Panel"
+      "default_title": "Open HLS Panel",
+      "default_icon": {
+        "16": "images/icon16.png",
+        "48": "images/icon48.png",
+        "128": "images/icon128.png"
+        }
     },
     "side_panel": {
       "default_path": "side_panel.html"

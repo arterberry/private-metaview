@@ -152,7 +152,7 @@ video {
     background-color: #1a3c5f;
 }
 
-/* UPDATED Horizontal resize handle */
+/* UPDATED HORIZONTAL RESIZE HANDLE */
 #metadataResizeHandle {
     height: 1px;
     background-color: #999;
@@ -161,13 +161,12 @@ video {
     user-select: none;
 }
 
-/* UPDATED Horizontal resize handle */
 #metadataResizeHandle:hover {
     background-color: #f0f0f0;
 }
 
 
-/* UPDATED Vertical resize handle */
+/* UPDATED VERTICAL RESIZE HANDLE */
 #resizeHandleVertical {
     width: 1px;
     cursor: ew-resize;
@@ -180,7 +179,6 @@ video {
     background-color: #f0f0f0;
 }
 
-
 /* #responsePanel {
     flex: 1;
     display: flex;
@@ -190,7 +188,7 @@ video {
     border-left: 1px solid #333;
 } */
 
-/* Tab navigation styling */
+/* TAB NAVIGATION STYLING */
 .metadata_tab-buttons {
     display: flex;
     background-color: #1a1a1a;
@@ -217,137 +215,8 @@ video {
     color: #fff;
 }
 
-/* --- Headers tab pane ---
-#headers-tab.metadata_tab-pane {
-    display: none;
-    overflow-y: auto;
-    flex: 1;
-    background-color: #0a0a0a;
-} */
 
-/* Scrollbars specific to headers */
-/* #headers-tab::-webkit-scrollbar {
-    width: 8px;
-} */
-/* #headers-tab::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 4px;
-} */
-
-/* Show active */
-/* #headers-tab.metadata_tab-pane.active {
-    display: block;
-} */
-
-/* .metadata_tab-content {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    background-color: #0a0a0a;
-} */
-
-/* Base styles for inactive tab panes */
-/* .metadata_tab-pane {
-    display: none;
-    height: 100%; 
-    background-color: #0a0a0a;
-    color: #ccc;
-    font-family: monospace;
-    font-size: 11px;
-    box-sizing: border-box;
-} */
-
-/* Style for active tab panes */
-/* .metadata_tab-pane.active {
-    display: block;
-    overflow: auto; 
-    height: 100%;
-} */
-
-/* Scrollbar styling */
-/* #body-tab::-webkit-scrollbar {
-    width: 8px;
-    display: block;
-} */
-
-/* #body-tab::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 4px;
-} */
-
-/* Body pane specific styles to ensure scrollbars */
-/* #body-tab {
-    overflow-y: scroll !important; 
-    scrollbar-width: thin; 
-} */
-
-/* --- Body tab pane --- */
-/* #body-tab.metadata_tab-pane {
-    display: none;
-    flex: 1;
-    overflow-y: auto;
-    background-color: #0a0a0a;
-    scrollbar-width: thin;
-} */
-
-/* Scrollbars specific to body */
-/* #body-tab::-webkit-scrollbar {
-    width: 8px;
-}
-#body-tab::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 4px;
-} */
-
-/* Show active */
-/* #body-tab.metadata_tab-pane.active {
-    display: block;
-} */
-
-
-/* #headerContent {
-    padding: 8px;
-    margin: 0;
-    font-family: monospace;
-    font-size: 11px;
-    color: #ccc;
-    white-space: pre-wrap;
-    word-break: break-word;
-    box-sizing: border-box;
-}
-
-#bodyContent {
-    background-color: rgb(64, 64, 64) !important;
-    height: 3000px !important;              
-    overflow-y: auto !important;            
-    display: block !important;              
-    position: relative !important;          
-    z-index: 1;                             
-
-    
-    padding: 8px;
-    margin: 0;
-    font-family: monospace;
-    font-size: 11px;
-    color: #ccc;
-    white-space: pre-wrap;
-    word-break: break-word;
-    box-sizing: border-box;
-} */
-
-/* Optional: Scrollbar for WebKit */
-/* #bodyContent::-webkit-scrollbar {
-    width: 8px;
-}
-#bodyContent::-webkit-scrollbar-thumb {
-    background-color: #555;
-    border-radius: 4px;
-} */
-
-
-
-/* Status bar */
+/* STATUS BAR */
 .status-bar {
     height: 20px;
     padding: 2px 12px;
@@ -357,34 +226,6 @@ video {
     display: flex;
     align-items: center;
 }
-
-/* Legacy panel header (keeping for compatibility) */
-/* .panel-header {
-    padding: 8px 12px;
-    background-color: #121212;
-    font-weight: bold;
-    font-size: 12px;
-    border-bottom: 1px solid #333;
-} */
-
-/* Responsive adjustments */
-@media (max-height: 600px) {
-    .video-container {
-        height: 60%;
-    }
-
-    .metadata-section {
-        height: 40%;
-    }
-}
-
-@media (max-width: 600px) {
-    .metadata-header {
-        font-size: 14px;
-        padding: 6px 8px;
-    }
-}
-
 
 /* TAB UPDATE */
 #responsePanelUpdate {
@@ -482,3 +323,20 @@ video {
     border-radius: 4px;
 }
 
+/* RESPONSIVENESS */
+@media (max-height: 600px) {
+    .video-container {
+        height: 60%;
+    }
+
+    .metadata-section {
+        height: 40%;
+    }
+}
+
+@media (max-width: 600px) {
+    .metadata-header {
+        font-size: 14px;
+        padding: 6px 8px;
+    }
+}
