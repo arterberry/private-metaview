@@ -129,13 +129,28 @@ video {
 }
 
 #metadataList div {
-    padding: 2px 12px;
+    position: relative;
+    padding: 2px 12px 2px 28px; 
     border-bottom: 1px solid #1a1a1a;
     font-size: 12px;
     white-space: pre-wrap;
     word-wrap: break-word;
     color: #ccc; 
     cursor: pointer;
+}
+
+#metadataList div::before {
+    content: '';
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512" fill="%23ccc"><path d="M3.4 81.7c-7.9 15.8-1.5 35 14.3 42.9L280.5 256 17.7 387.4C1.9 395.3-4.5 414.5 3.4 430.3s27.1 22.2 42.9 14.3l320-160c10.8-5.4 17.7-16.5 17.7-28.6s-6.8-23.2-17.7-28.6l-320-160c-15.8-7.9-35-1.5-42.9 14.3z"/></svg>');
+    pointer-events: none;
 }
 
 /* STYLE FOR TIMESTAMPS IN METADATA  */
@@ -154,13 +169,14 @@ video {
 
 /* UPDATED HORIZONTAL RESIZE HANDLE */
 #metadataResizeHandle {
-    height: 6px;
+    height: 7px;
     background-color: #999;
     cursor: ns-resize;
     z-index: 10;
     position: relative;
     user-select: none;
     transition: background-color 0.2s ease;
+    pointer-events: auto;
 }
 
 #metadataResizeHandle:hover {
@@ -185,10 +201,9 @@ video {
     opacity: 1;
 }
 
-
 /* UPDATED VERTICAL RESIZE HANDLE */
 #resizeHandleVertical {
-    width: 6px;
+    width: 7px;
     background-color: #999;
     cursor: ew-resize;
     z-index: 10;
@@ -282,7 +297,6 @@ video {
     border-bottom: .5px solid #333;
 }
 
-
 .metadata_tab-buttonUpdate {
     padding: 8px 12px;
     background-color: transparent;
@@ -300,7 +314,7 @@ video {
 .metadata_tab-buttonUpdate.active {
     /* background-color: #0a0a0a; */
     background-color: #4e4e4e;
-    border-bottom: .5px solid #ffffff;
+    border-bottom: .5px solid #4e4e4e; /* ffffff */
     color: #fff;
 }
 
