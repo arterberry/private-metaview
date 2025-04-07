@@ -1,4 +1,4 @@
-console.log("Side panel script loaded.");
+console.log("VIDINFRA HLS MetaPlayer Side panel script loaded.");
 
 const urlDisplay = document.getElementById('m3u8Url');
 const statusDisplay = document.getElementById('hlsStatus');

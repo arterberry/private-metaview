@@ -1,5 +1,4 @@
 // content.js (Updated to intercept M3U8 URLs more aggressively)
-
 // Function to detect M3U8 URLs
 function isM3u8Url(url) {
     try {

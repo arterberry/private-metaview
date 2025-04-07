@@ -154,29 +154,68 @@ video {
 
 /* UPDATED HORIZONTAL RESIZE HANDLE */
 #metadataResizeHandle {
-    height: 1px;
+    height: 6px;
     background-color: #999;
     cursor: ns-resize;
     z-index: 10;
+    position: relative;
     user-select: none;
+    transition: background-color 0.2s ease;
 }
 
 #metadataResizeHandle:hover {
-    background-color: #f0f0f0;
+    background-color: #aaa;
+}
+
+#metadataResizeHandle::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 3px;
+    background-color: #555;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#metadataResizeHandle:hover::after {
+    opacity: 1;
 }
 
 
 /* UPDATED VERTICAL RESIZE HANDLE */
 #resizeHandleVertical {
-    width: 1px;
-    cursor: ew-resize;
+    width: 6px;
     background-color: #999;
+    cursor: ew-resize;
     z-index: 10;
-    /* flex: 0 0 5px;  */
+    position: relative;
+    transition: background-color 0.2s ease;
 }
 
 #resizeHandleVertical:hover {
-    background-color: #f0f0f0;
+    background-color: #aaa;
+}
+
+#resizeHandleVertical::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 3px;
+    height: 40px;
+    background-color: #555;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+#resizeHandleVertical:hover::after {
+    opacity: 1;
 }
 
 /* #responsePanel {

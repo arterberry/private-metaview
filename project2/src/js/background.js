@@ -1,4 +1,4 @@
-console.log("HLS Player (Content Script) - Background Script Loaded.");
+console.log("VIDINFRA HLS MetaPlayer - Background Script Loaded.");
 
 // Define function to detect M3U8 URLs
 function isM3u8Url(url) {
