@@ -1,4 +1,4 @@
-/* Base styles */
+/* BASE STYLES */
 body {
     margin: 0;
     background-color: #000;
@@ -17,16 +17,16 @@ body {
     height: 100%;
 }
 
-/* Video container */
+/* VIDEO CONTAINER */
 .video-container {
     position: relative;
     width: 100%;
-    height: 70%; /* Takes up 70% of the height initially */
+    height: 70%; 
     display: flex;
     justify-content: center;
     align-items: center;
     background-color: #000;
-    min-height: 200px; /* Minimum height */
+    min-height: 200px;
 }
 
 video {
@@ -36,7 +36,7 @@ video {
     max-height: 100%;
 }
 
-/* Side panel button styling */
+/* SIDE PANEL BUTTON STYLING */
 #side-panel-button {
     position: absolute;
     top: 15px;
@@ -65,7 +65,7 @@ video {
     height: 24px;
 }
 
-/* Metadata section */
+/* METADATA SECTION */
 .metadata-section {
     position: relative;
     width: 100%;
@@ -78,22 +78,22 @@ video {
     border-top: 1px solid #333;
 }
 
-/* Resize handle */
+/* DEPRECATED Resize handle  */
 .resize-handle {
     position: absolute;
     top: 0;
     width: 100%;
-    height: 5px;
-    background-color: #333;
+    height: 1px;
+    background-color: #a2a2a2;
     cursor: ns-resize;
     z-index: 100;
 }
 
 .resize-handle:hover {
-    background-color: #555;
+    background-color: #f0f0f0;
 }
 
-/* Header above metadata section */
+/* HEADER ABOVE METADATA SECTION */
 .metadata-header {
     padding: 8px 12px;
     background-color: #121212;
@@ -102,7 +102,7 @@ video {
     height: 20px; 
 }
 
-/* Main container for metadata and response panels */
+/* MAIN CONTAINER FOR METADATA CONTAINER AND RESPONSE PANELS  */
 #metadataContainer {
     display: flex;
     flex: 1;
@@ -110,7 +110,12 @@ video {
     height: calc(100% - 40px);
 }
 
-/* Left panel for metadata list */
+/* UPDATE - VIDEO AND METADATA CONTAINER SMOOTH LIFT  */
+#metadataContainer, .video-container {
+    transition: height 0.1s ease-out;
+}
+
+/* LEFT PANEL FOR METADATA LIST */
 #metadataPanel {
     flex: 0 0 50%; 
     min-width: 200px;
@@ -133,7 +138,7 @@ video {
     cursor: pointer;
 }
 
-/* Style for timestamps in metadata */
+/* STYLE FOR TIMESTAMPS IN METADATA  */
 #metadataList div span {
     color: #666; 
     margin-right: 5px;
@@ -147,33 +152,43 @@ video {
     background-color: #1a3c5f;
 }
 
-/* Vertical resize handle */
+/* UPDATED Horizontal resize handle */
+#metadataResizeHandle {
+    height: 1px;
+    background-color: #999;
+    cursor: ns-resize;
+    z-index: 10;
+    user-select: none;
+}
+
+/* UPDATED Horizontal resize handle */
+#metadataResizeHandle:hover {
+    background-color: #f0f0f0;
+}
+
+
+/* UPDATED Vertical resize handle */
 #resizeHandleVertical {
-    width: 5px;
+    width: 1px;
     cursor: ew-resize;
-    background-color: #333;
-    flex: 0 0 5px; 
+    background-color: #999;
+    z-index: 10;
+    /* flex: 0 0 5px;  */
 }
 
 #resizeHandleVertical:hover {
-    background-color: #555;
+    background-color: #f0f0f0;
 }
 
-#metadataResizeHandle {
-    height: 6px;
-    background-color: #444;
-    cursor: ns-resize;
-    z-index: 10;
-}
 
-#responsePanel {
+/* #responsePanel {
     flex: 1;
     display: flex;
     flex-direction: column;
     background-color: #0a0a0a;
     min-width: 200px;
     border-left: 1px solid #333;
-}
+} */
 
 /* Tab navigation styling */
 .metadata_tab-buttons {
@@ -202,99 +217,96 @@ video {
     color: #fff;
 }
 
-/* --- Headers tab pane --- */
+/* --- Headers tab pane ---
 #headers-tab.metadata_tab-pane {
     display: none;
     overflow-y: auto;
     flex: 1;
     background-color: #0a0a0a;
-}
+} */
 
 /* Scrollbars specific to headers */
-#headers-tab::-webkit-scrollbar {
+/* #headers-tab::-webkit-scrollbar {
     width: 8px;
-}
-#headers-tab::-webkit-scrollbar-thumb {
+} */
+/* #headers-tab::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 4px;
-}
-#headers-tab {
-    scrollbar-width: thin; /* Firefox */
-}
+} */
 
 /* Show active */
-#headers-tab.metadata_tab-pane.active {
+/* #headers-tab.metadata_tab-pane.active {
     display: block;
-}
+} */
 
-.metadata_tab-content {
+/* .metadata_tab-content {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background-color: #0a0a0a;
-}
+} */
 
 /* Base styles for inactive tab panes */
-.metadata_tab-pane {
+/* .metadata_tab-pane {
     display: none;
-    height: 100%; /* Take full height */
+    height: 100%; 
     background-color: #0a0a0a;
     color: #ccc;
     font-family: monospace;
     font-size: 11px;
     box-sizing: border-box;
-}
+} */
 
 /* Style for active tab panes */
-.metadata_tab-pane.active {
+/* .metadata_tab-pane.active {
     display: block;
     overflow: auto; 
     height: 100%;
-}
+} */
 
 /* Scrollbar styling */
-#body-tab::-webkit-scrollbar {
+/* #body-tab::-webkit-scrollbar {
     width: 8px;
     display: block;
-}
+} */
 
-#body-tab::-webkit-scrollbar-thumb {
+/* #body-tab::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 4px;
-}
+} */
 
 /* Body pane specific styles to ensure scrollbars */
-#body-tab {
+/* #body-tab {
     overflow-y: scroll !important; 
     scrollbar-width: thin; 
-}
+} */
 
 /* --- Body tab pane --- */
-#body-tab.metadata_tab-pane {
+/* #body-tab.metadata_tab-pane {
     display: none;
     flex: 1;
     overflow-y: auto;
     background-color: #0a0a0a;
     scrollbar-width: thin;
-}
+} */
 
 /* Scrollbars specific to body */
-#body-tab::-webkit-scrollbar {
+/* #body-tab::-webkit-scrollbar {
     width: 8px;
 }
 #body-tab::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 4px;
-}
+} */
 
 /* Show active */
-#body-tab.metadata_tab-pane.active {
+/* #body-tab.metadata_tab-pane.active {
     display: block;
-}
+} */
 
 
-#headerContent {
+/* #headerContent {
     padding: 8px;
     margin: 0;
     font-family: monospace;
@@ -307,13 +319,13 @@ video {
 
 #bodyContent {
     background-color: rgb(64, 64, 64) !important;
-    height: 3000px !important;               /* ✅ Fixed height, scroll always possible */
-    overflow-y: auto !important;            /* ✅ Force scroll, even if not needed */
-    display: block !important;              /* ✅ Ignore flex parents */
-    position: relative !important;          /* ✅ Break from flow if needed */
-    z-index: 1;                              /* Just in case a parent hides it */
+    height: 3000px !important;              
+    overflow-y: auto !important;            
+    display: block !important;              
+    position: relative !important;          
+    z-index: 1;                             
 
-    /* Visual / text styles */
+    
     padding: 8px;
     margin: 0;
     font-family: monospace;
@@ -322,16 +334,16 @@ video {
     white-space: pre-wrap;
     word-break: break-word;
     box-sizing: border-box;
-}
+} */
 
 /* Optional: Scrollbar for WebKit */
-#bodyContent::-webkit-scrollbar {
+/* #bodyContent::-webkit-scrollbar {
     width: 8px;
 }
 #bodyContent::-webkit-scrollbar-thumb {
     background-color: #555;
     border-radius: 4px;
-}
+} */
 
 
 
@@ -347,13 +359,13 @@ video {
 }
 
 /* Legacy panel header (keeping for compatibility) */
-.panel-header {
+/* .panel-header {
     padding: 8px 12px;
     background-color: #121212;
     font-weight: bold;
     font-size: 12px;
     border-bottom: 1px solid #333;
-}
+} */
 
 /* Responsive adjustments */
 @media (max-height: 600px) {
@@ -372,3 +384,101 @@ video {
         padding: 6px 8px;
     }
 }
+
+
+/* TAB UPDATE */
+#responsePanelUpdate {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background-color: #535353;
+    min-width: 200px;
+    border-left: 1px solid #333;
+}
+
+.metadata_tab-buttonsUpdate {
+    display: flex;
+    background-color: #1a1a1a;
+    border-bottom: .5px solid #333;
+}
+
+
+.metadata_tab-buttonUpdate {
+    padding: 8px 12px;
+    background-color: transparent;
+    border: none;
+    color: #ccc;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.metadata_tab-buttonUpdate:hover {
+    background-color: #252525;
+}
+
+.metadata_tab-buttonUpdate.active {
+    /* background-color: #0a0a0a; */
+    background-color: #4e4e4e;
+    border-bottom: .5px solid #ffffff;
+    color: #fff;
+}
+
+.metadata_tab-contentUpdate {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: #787878;
+}
+
+/* HEADER PANE UPDATES */
+.metadata_tab-paneUpdate {
+    display: none;
+    height: 100%;
+    background-color: #4e4e4e;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+.metadata_tab-paneUpdate.active {
+    display: block;
+    overflow-y: scroll;
+}
+
+.metadata_tab-paneUpdate.active::-webkit-scrollbar {
+    width: 8px;
+}
+
+.metadata_tab-paneUpdate.active::-webkit-scrollbar-thumb {
+    background-color: #333;
+    border-radius: 4px;
+}
+
+/* BODY TAB PANE */
+.metadata_tab-paneBodyUpdate {
+    display: none;
+    height: 100%;
+    background-color: #4e4e4e;
+    color: #ffffff;
+    font-family: monospace;
+    font-size: 11px;
+    box-sizing: border-box;
+}
+
+.metadata_tab-paneBodyUpdate.active {
+    display: block;
+    overflow-y: scroll;
+}
+
+.metadata_tab-paneBodyUpdate.active::-webkit-scrollbar {
+    width: 8px;
+}
+
+.metadata_tab-paneBodyUpdate.active::-webkit-scrollbar-thumb {
+    background-color: #333;
+    border-radius: 4px;
+}
+

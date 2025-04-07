@@ -1,5 +1,3 @@
-
-
 // Basic HLS Player: Display .ts and .m3u8 feed data in the left panel
 // and log response headers and bodies to console for each segment.
 // Now also supports displaying selected segment's headers/body in right panel tabs.
@@ -7,35 +5,113 @@
 console.log("Enhanced HLS Feed Segment Viewer Loaded");
 
 document.addEventListener('DOMContentLoaded', () => {
-    const resizeHandle = document.getElementById('metadataResizeHandle');
+
+
+    const sidePanelButton = document.getElementById('side-panel-button');
+    if (sidePanelButton) {
+        sidePanelButton.addEventListener('click', async () => {
+            console.log('👁️ Side panel button clicked');
+            try {
+                const currentWindow = await chrome.windows.getCurrent();
+                if (currentWindow) {
+                    await chrome.sidePanel.open({ windowId: currentWindow.id });
+                    console.log('✅ Side panel opened');
+                } else {
+                    console.error('❌ Could not get current window');
+                }
+            } catch (error) {
+                console.error('🚫 Error opening side panel:', error);
+            }
+        });
+    } else {
+        console.warn('⚠️ Side panel button not found in DOM');
+    }
+    
     const metadataContainer = document.getElementById('metadataContainer');
     const videoContainer = document.querySelector('.video-container');
 
+    
+    const resizeHandle = document.getElementById('metadataResizeHandle');
     let isDragging = false;
 
-    resizeHandle?.addEventListener('mousedown', () => {
+    let startY = 0;
+    let startHeight = 0;
+    
+    resizeHandle.addEventListener('pointerdown', (e) => {
         isDragging = true;
+        startY = e.clientY;
+        startHeight = metadataContainer.getBoundingClientRect().height;
+    
+        resizeHandle.setPointerCapture(e.pointerId); 
+    
         document.body.style.cursor = 'ns-resize';
         document.body.style.userSelect = 'none';
     });
-
-    document.addEventListener('mousemove', (e) => {
+    
+    window.addEventListener('pointermove', (e) => {
         if (!isDragging) return;
-        const newHeight = window.innerHeight - e.clientY;
+    
+        const dy = e.clientY - startY;
+        const newHeight = startHeight - dy;
+    
         metadataContainer.style.height = `${newHeight}px`;
-        videoContainer.style.height = `${window.innerHeight - newHeight}px`;
+        videoContainer.style.height = `calc(100% - ${newHeight}px)`;
+    
+        console.log('🟡 Resizing...');
     });
-
-    document.addEventListener('mouseup', () => {
+    
+    window.addEventListener('pointerup', () => {
+        if (isDragging) console.log('🔴 Drag stopped');
         isDragging = false;
         document.body.style.cursor = '';
         document.body.style.userSelect = '';
     });
+    
+    const verticalHandle = document.getElementById('resizeHandleVertical');
+    const metadataPanel = document.getElementById('metadataPanel');
+
+    let isResizingHorizontally = false;
+    let startX = 0;
+    let startWidth = 0;
+
+    verticalHandle.addEventListener('pointerdown', (e) => {
+        isResizingHorizontally = true;
+        startX = e.clientX;
+        startWidth = metadataPanel.getBoundingClientRect().width;
+
+        verticalHandle.setPointerCapture(e.pointerId);
+
+        document.body.style.cursor = 'ew-resize';
+        document.body.style.userSelect = 'none';
+    });
+
+    window.addEventListener('pointermove', (e) => {
+        if (!isResizingHorizontally) return;
+
+        const dx = e.clientX - startX;
+        const newWidth = startWidth + dx;
+
+        metadataPanel.style.width = `${newWidth}px`;
+        metadataPanel.style.flex = `0 0 ${newWidth}px`;
+        console.log('↔️ Resizing horizontal...');
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (isResizingHorizontally) {
+            console.log('✅ Horizontal drag complete');
+        }
+
+        isResizingHorizontally = false;
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+    });
+
+    
 
     const video = document.getElementById('hlsVideoPlayer');
     const metadataList = document.getElementById("metadataList");
-    const headerContent = document.getElementById("headerContent");
-    const bodyContent = document.getElementById("bodyContent");
+    // const headerContent = document.getElementById("headerContent");
+    // const bodyContent = document.getElementById("bodyContent");
     const urlParams = new URLSearchParams(window.location.search);
     const m3u8Src = urlParams.get('src');
 
@@ -149,57 +225,107 @@ document.addEventListener('DOMContentLoaded', () => {
         metadataList.appendChild(entry);
     });
 
+    const headerPane = document.querySelector('#headers-tabUpdate');
+    const bodyPane = document.querySelector('#body-tabUpdate');
+    const headerContent = document.querySelector('#headers-tabUpdate pre');
+    const bodyContent = document.querySelector('#body-tabUpdate pre');
+
     function displaySegmentData(segmentId) {
         console.log(`🔍 Display requested for segment: ${segmentId}`);
 
         const headers = segmentHeaders.get(segmentId);
         const body = segmentBodies.get(segmentId);
 
-        console.log("Headers found:", headers);
-        console.log("Body found:", body ? body.substring(0, 80) + "..." : "(no body)");
-
         if (headerContent) {
             headerContent.textContent = headers ? JSON.stringify(headers, null, 2) : "No header data available.";
-        } else {
-            console.warn("⚠️ headerContent element not found in DOM.");
         }
 
         if (bodyContent) {
             bodyContent.textContent = body || "No response body available.";
-        } else {
-            console.warn("⚠️ bodyContent element not found in DOM.");
         }
 
-        // Activate only the headers tab
-        const headerPane = document.querySelector('#headers-tab');
-        const bodyPane = document.querySelector('#body-tab');
+        // Activate header pane
         if (headerPane && bodyPane) {
             headerPane.classList.add('active');
             bodyPane.classList.remove('active');
         }
 
-        const tabButtons = document.querySelectorAll('.metadata_tab-button');
-        const headerTabButton = document.querySelector('.metadata_tab-button[data-tab="headers"]');
-        const bodyTabButton = document.querySelector('.metadata_tab-button[data-tab="body"]');
+        const tabButtons = document.querySelectorAll('.metadata_tab-buttonUpdate');
+        const headerTabButton = document.querySelector('.metadata_tab-buttonUpdate[data-tab="headers"]');
+        const bodyTabButton = document.querySelector('.metadata_tab-buttonUpdate[data-tab="body"]');
 
         tabButtons.forEach(btn => btn.classList.remove('active'));
         headerTabButton?.classList.add('active');
         bodyTabButton?.classList.remove('active');
-    };
+    }
 
-    document.querySelectorAll('.metadata_tab-button').forEach(button => {
+    // Handle tab clicks
+    document.querySelectorAll('.metadata_tab-buttonUpdate').forEach(button => {
         button.addEventListener('click', () => {
             const tab = button.dataset.tab;
-    
-            // Deactivate all buttons and tab panes
-            document.querySelectorAll('.metadata_tab-button').forEach(btn => btn.classList.remove('active'));
-            document.querySelectorAll('.metadata_tab-pane').forEach(pane => pane.classList.remove('active'));
-    
-            // Activate clicked button and its tab pane
+
+            // Deactivate all
+            document.querySelectorAll('.metadata_tab-buttonUpdate').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.metadata_tab-paneUpdate, .metadata_tab-paneBodyUpdate').forEach(pane => pane.classList.remove('active'));
+
+            // Activate selected
             button.classList.add('active');
-            document.getElementById(`${tab}-tab`)?.classList.add('active');
+            document.getElementById(`${tab}-tabUpdate`)?.classList.add('active');
         });
     });
+
+
+    // function displaySegmentData(segmentId) {
+    //     console.log(`🔍 Display requested for segment: ${segmentId}`);
+
+    //     const headers = segmentHeaders.get(segmentId);
+    //     const body = segmentBodies.get(segmentId);
+
+    //     console.log("Headers found:", headers);
+    //     console.log("Body found:", body ? body.substring(0, 80) + "..." : "(no body)");
+
+    //     if (headerContent) {
+    //         headerContent.textContent = headers ? JSON.stringify(headers, null, 2) : "No header data available.";
+    //     } else {
+    //         console.warn("⚠️ headerContent element not found in DOM.");
+    //     }
+
+    //     if (bodyContent) {
+    //         bodyContent.textContent = body || "No response body available.";
+    //     } else {
+    //         console.warn("⚠️ bodyContent element not found in DOM.");
+    //     }
+
+    //     // Activate only the headers tab
+    //     const headerPane = document.querySelector('#headers-tabUpdate');
+    //     const bodyPane = document.querySelector('#body-tab');
+    //     if (headerPane && bodyPane) {
+    //         headerPane.classList.add('active');
+    //         bodyPane.classList.remove('active');
+    //     }
+
+    //     const tabButtons = document.querySelectorAll('.metadata_tab-buttonUpdate');
+    //     const headerTabButton = document.querySelector('.metadata_tab-buttonUpdate[data-tab="headers"]');
+    //     const bodyTabButton = document.querySelector('.metadata_tab-buttonUpdate[data-tab="body"]');
+
+    //     tabButtons.forEach(btn => btn.classList.remove('active'));
+    //     headerTabButton?.classList.add('active');
+    //     bodyTabButton?.classList.remove('active');
+    // };
+
+    // document.querySelectorAll('.metadata_tab-buttonUpdate').forEach(button => {
+    //     button.addEventListener('click', () => {
+    //         const tab = button.dataset.tab;
+    
+    //         // Deactivate all buttons and tab panes
+    //         document.querySelectorAll('.metadata_tab-buttonUpdate').forEach(btn => btn.classList.remove('active'));
+    //         document.querySelectorAll('.metadata_tab-paneUpdate').forEach(pane => pane.classList.remove('active'));
+    
+    //         // Activate clicked button and its tab pane
+    //         button.classList.add('active');
+    //         document.getElementById(`${tab}-tab`)?.classList.add('active');
+    //     });
+    // });
     
 });
 

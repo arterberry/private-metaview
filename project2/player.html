@@ -26,26 +26,28 @@
             <span></span> <!-- Empty for now, will contain other data later -->
         </div>
 
+        <!-- Resize Handle  -->
         <div id="metadataResizeHandle"></div>
 
         <div id="metadataContainer">
             <div id="metadataPanel">
                 <div id="metadataList"></div>
             </div>
+
+            <!-- Internal Resize Handle  -->
+            <div id="resizeHandleVertical"></div>
             
-            <div id="responsePanel">
-                <div class="metadata_tab-container">
-                    <div class="metadata_tab-buttons">
-                        <button class="metadata_tab-button active" data-tab="headers">Response Headers</button>
-                        <button class="metadata_tab-button" data-tab="body">Response Body</button>
+            <div id="responsePanelUpdate">
+                <div class="metadata_tab-buttonsUpdate">
+                    <button class="metadata_tab-buttonUpdate active" data-tab="headers">Response Headers</button>
+                    <button class="metadata_tab-buttonUpdate" data-tab="body">Response Body</button>
+                </div>
+                <div class="metadata_tab-contentUpdate">
+                    <div id="headers-tabUpdate" class="metadata_tab-paneUpdate active">
+                        <pre id="headerContent">Select a segment to view headers</pre>                        
                     </div>
-                    <div class="metadata_tab-content">
-                        <div id="headers-tab" class="metadata_tab-pane active">
-                            <pre id="headerContent">Select a segment to view headers</pre>
-                        </div>
-                        <div id="body-tab" class="metadata_tab-pane">
-                            <pre id="bodyContent">Select a segment to view response body</pre>
-                        </div>
+                    <div id="body-tabUpdate" class="metadata_tab-paneBodyUpdate">
+                        <pre id="bodyContent">Select a segment to view response body</pre>
                     </div>
                 </div>
             </div>
