@@ -28,6 +28,27 @@ function fetchStoredMessages() {
             }
         }
     });
+
+    // Fetch and display resolutions if available
+    chrome.storage.local.get('latest_resolutions', function (items) {
+        if (chrome.runtime.lastError) {
+            console.error("Error retrieving stored resolutions:", chrome.runtime.lastError.message);
+            return;
+        }
+    
+        const res = items.latest_resolutions;
+    
+        // Render if exists
+        if (Array.isArray(res) && window.ResolutionAnalyzer) {
+            window.ResolutionAnalyzer.renderToDOM(res, 'resolutionList');
+        }
+    
+        // Clean up after rendering
+        chrome.storage.local.remove('latest_resolutions', () => {
+            console.log("Cleaned up latest_resolutions from chrome.storage");
+        });
+    });
+      
 }
 
 // Runtime message listener

@@ -211,6 +211,7 @@ video {
     position: relative;
     transition: background-color 0.2s ease;
     pointer-events: auto;
+    touch-action: none;
 }
 
 #resizeHandleVertical:hover {
@@ -230,6 +231,7 @@ video {
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: auto;
+    touch-action: none;
 }
 
 #resizeHandleVertical:hover::after {
@@ -380,6 +382,76 @@ video {
     background-color: #333;
     border-radius: 4px;
 }
+
+
+/* SIDE PANEL UPDATED */
+.info-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 400px;
+    height: 100%;
+    background-color: #1e1e1e;
+    color: black;
+    z-index: 9999;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease-in-out;
+    transform: translateX(0);
+}
+
+.info-panel.hidden {
+    transform: translateX(100%);
+}
+
+.info-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 55px;
+    color: white;
+    padding: 0 1rem; /* horizontal only */    
+    background-color: #2a2a2a;
+}
+
+.info-panel-content {
+    padding: 1rem;
+    overflow-y: auto;
+    flex-grow: 1;
+}
+
+#closeButton {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    /* Changed to 50% for circular shape */
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    /* Remove padding */
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#closeButton:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+button#closeButton svg {
+    width: 16px;
+    height: 16px;
+    fill: white;
+}
+
+
+
 
 /* RESPONSIVENESS */
 @media (max-height: 600px) {
