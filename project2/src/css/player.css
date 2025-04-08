@@ -195,6 +195,7 @@ video {
     transform: translate(-50%, -50%);
     opacity: 0;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
 }
 
 #metadataResizeHandle:hover::after {
@@ -209,6 +210,7 @@ video {
     z-index: 10;
     position: relative;
     transition: background-color 0.2s ease;
+    pointer-events: auto;
 }
 
 #resizeHandleVertical:hover {
@@ -227,6 +229,7 @@ video {
     transform: translate(-50%, -50%);
     opacity: 0;
     transition: opacity 0.2s ease;
+    pointer-events: auto;
 }
 
 #resizeHandleVertical:hover::after {

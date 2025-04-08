@@ -7,8 +7,7 @@ const levelsDisplay = document.getElementById('hlsLevels');
 const currentLevelDisplay = document.getElementById('hlsCurrentLevel');
 const errorsDisplay = document.getElementById('errors');
 
-// Validate required DOM elements
-if (!urlDisplay || !statusDisplay || !levelsDisplay || !currentLevelDisplay || !errorsDisplay) {
+if (!urlDisplay || !statusDisplay || !errorsDisplay) {
     console.error("Missing one or more required DOM elements in side_panel.html");
 }
 
@@ -154,8 +153,6 @@ function initializePanel() {
 
     setStatus("Waiting for stream...");
     updateUrl("Loading...");
-    levelsDisplay.textContent = "N/A";
-    currentLevelDisplay.textContent = "N/A";
     errorsDisplay.innerHTML = '';
 
     getActiveTabInfo();
