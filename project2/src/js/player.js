@@ -224,7 +224,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         entry.addEventListener("click", () => displaySegmentData(file));
                         metadataList.appendChild(entry);
                     }
-
                     
                     const rawHeaders = xhr.getAllResponseHeaders();
                     const headerMap = {};
@@ -261,6 +260,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     segmentBodies.set(file, bodyText);
                     console.log(`[BODY] ${file}`, bodyText);
+
+                    if (window.SCTE35 && bodyText && file.endsWith('.ts')) {
+                        const parsed = window.SCTE35.parseFromPayload(bodyText);
+                        if (parsed && parsed.length && window.SCTEInspector) {
+                            window.SCTEInspector.handleMarkers(parsed);
+                        }
+                    }                    
 
                     originalOnSuccess(response, stats, context, xhr);
                 };

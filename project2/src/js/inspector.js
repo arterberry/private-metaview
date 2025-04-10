@@ -1,5 +1,6 @@
 // inspector.js
 
+// Cache Inspector
 window.CacheInspector = (function () {
     const cacheData = {
         hits: 0,
@@ -122,6 +123,67 @@ window.CacheInspector = (function () {
     };
 })();
 
+// SCTE-35 Inspector
+window.SCTEInspector = (function () {
+    const scteMarkers = [];
+
+    function handleMarkers(parsedArray) {
+        parsedArray.forEach((marker, index) => {
+            scteMarkers.push(marker);
+            renderScteMarker(marker);
+            renderScteDetail(marker);
+        });
+
+        updateStats();
+        showDetailSection();
+    }
+
+    function renderScteMarker(marker) {
+        const display = document.getElementById('scteDisplay');
+        if (!display) return;
+
+        const markerEl = document.createElement('div');
+        markerEl.className = `scte-marker ${marker.type === 'ad' ? 'ad-marker' : 'content-marker'}`;
+        markerEl.textContent = `${marker.type.toUpperCase()} - PID ${marker.pid}`;
+        display.appendChild(markerEl);
+    }
+
+    function renderScteDetail(marker) {
+        const container = document.getElementById('scteDetailContainer');
+        if (!container) return;
+
+        const detail = document.createElement('div');
+        detail.className = 'scte-detail-entry';
+        detail.innerHTML = `
+            <div><strong>Type:</strong> ${marker.type}</div>
+            <div><strong>PID:</strong> ${marker.pid}</div>
+            <div><strong>Timestamp:</strong> ${new Date().toLocaleTimeString()}</div>
+            <pre>${JSON.stringify(marker, null, 2)}</pre>
+        `;
+
+        container.appendChild(detail);
+    }
+
+    function updateStats() {
+        const adCount = scteMarkers.filter(m => m.type === 'ad').length;
+        const adRatio = ((adCount / scteMarkers.length) * 100).toFixed(1);
+
+        document.getElementById('adRatio').textContent = `Ad Ratio: ${adRatio}%`;
+        document.getElementById('adCount').textContent = `Ads: ${adCount}`;
+    }
+
+    function showDetailSection() {
+        const section = document.getElementById('scteDetailSection');
+        if (section) {
+            section.style.display = 'block';
+        }
+    }
+
+    return {
+        handleMarkers
+    };
+})();
+
 // Resolutions
 window.ResolutionAnalyzer = {
     async fetchResolutions(manifestUrl) {
@@ -170,6 +232,7 @@ window.ResolutionAnalyzer = {
     }
 };
 
+// Cache-Control Parser
 window.parseTTLFromHeaders = function(headers) {
     const lower = Object.fromEntries(Object.entries(headers).map(([k, v]) => [k.toLowerCase(), v]));
     const cacheControl = lower['cache-control'] || '';
