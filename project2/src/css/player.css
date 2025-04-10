@@ -170,7 +170,7 @@ video {
 /* UPDATED HORIZONTAL RESIZE HANDLE */
 #metadataResizeHandle {
     height: 7px;
-    background-color: #999;
+    background-color: #2C2C2C;
     cursor: ns-resize;
     z-index: 10;
     position: relative;
@@ -180,7 +180,7 @@ video {
 }
 
 #metadataResizeHandle:hover {
-    background-color: #aaa;
+    background-color: #2C2C2C;
 }
 
 #metadataResizeHandle::after {
@@ -423,17 +423,17 @@ video {
 
 #closeButton {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 16px;
+    right: 16px;
     background: #1a1a1a;
-    color: white;
+    /* color: white; */
     border: none;
     border-radius: 50%;
-    /* Changed to 50% for circular shape */
+    
     width: 32px;
     height: 32px;
     padding: 0;
-    /* Remove padding */
+    
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -447,7 +447,7 @@ video {
 button#closeButton svg {
     width: 16px;
     height: 16px;
-    fill: white;
+    /* fill: white; */
 }
 
 
