@@ -139,10 +139,13 @@
         </div>
     </div>
 
-    <script src="js/hls.min.js"></script>
-    <script src="js/player_ui.js"></script>
-    <script src="js/player_loader.js"></script>
-    <script src="js/manifest.js"></script>
+    <!-- Load HLS core and live listener early -->
+    <script defer src="js/hls.min.js"></script>
+    <script defer src="js/hls-listener.js"></script>
+    <script defer src="js/player_ui.js"></script>
+    <script defer src="js/player_loader.js"></script>
+    <script defer src="js/manifest.js"></script>
+
 
 </body>
 
