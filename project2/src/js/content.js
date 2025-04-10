@@ -6,71 +6,67 @@ function isHlsUrl(url) {
         url.includes('/playlist.m3u8') || url.includes('isml/.m3u8');
 }
 
-// Function to handle file drops
-function handleFileDrop(event) {
-    event.preventDefault();
+// Skip hijack if we're already in the player
+if (
+    isHlsUrl(window.location.href) &&
+    !window.location.pathname.includes('player.html')
+) {
+    console.log("[content.js] Detected raw .m3u8 URL — launching player");
 
-    const files = event.dataTransfer.files;
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-
-        if (file.name.endsWith('.m3u8')) {
-            // Create object URL for the dropped file
-            const objectUrl = URL.createObjectURL(file);
-
-            // Load the player with the file URL
-            loadPlayer(objectUrl, file.name);
-            return;
-        }
-    }
-}
-
-// Main function to handle HLS URLs or file drops
-function loadPlayer(hlsUrl, fileName = '') {
-    // Get the extension's chrome-extension:// URL
     chrome.runtime.sendMessage({
         action: "getPlayerUrl",
-        hlsUrl: hlsUrl,
-        fileName: fileName
+        hlsUrl: window.location.href
     });
 }
 
-// Listen for drop events on the entire document
-document.addEventListener('dragover', (event) => {
-    // Check if any of the items being dragged is an .m3u8 file
-    for (let i = 0; i < event.dataTransfer.items.length; i++) {
-        const item = event.dataTransfer.items[i];
-        if (item.kind === 'file' && item.type === 'application/x-mpegurl' ||
-            (item.kind === 'file' && item.getAsFile().name.endsWith('.m3u8'))) {
-            // If it's an .m3u8 file, prevent the default behavior and show drop is possible
-            event.preventDefault();
-            return;
+// Handle file drop logic only if not in player.html
+if (!window.location.pathname.includes('player.html')) {
+    document.addEventListener('dragover', (event) => {
+        for (let i = 0; i < event.dataTransfer.items.length; i++) {
+            const item = event.dataTransfer.items[i];
+            if (
+                item.kind === 'file' &&
+                (item.type === 'application/x-mpegurl' ||
+                    item.getAsFile().name.endsWith('.m3u8'))
+            ) {
+                event.preventDefault();
+                return;
+            }
         }
-    }
-});
+    });
 
-document.addEventListener('drop', handleFileDrop);
-
-// Check if the current page is an m3u8 file
-if (isHlsUrl(window.location.href)) {
-    // If the current page is an m3u8 file, load the player
-    loadPlayer(window.location.href);
+    document.addEventListener('drop', (event) => {
+        event.preventDefault();
+        const files = event.dataTransfer.files;
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (file.name.endsWith('.m3u8')) {
+                const objectUrl = URL.createObjectURL(file);
+                chrome.runtime.sendMessage({
+                    action: "getPlayerUrl",
+                    hlsUrl: objectUrl,
+                    fileName: file.name
+                });
+                return;
+            }
+        }
+    });
 }
 
-// Listen for messages from the background script
+// Listener to handle injected player from background — optional now
 chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === "openPlayer") {
-        // Replace the current page with the player page
+    if (
+        message.action === "openPlayer" &&
+        !window.location.pathname.includes('player.html')
+    ) {
+        console.log("[content.js] Injecting minimal player fallback");
         document.documentElement.innerHTML = message.playerHtml;
 
-        // Execute the necessary scripts
         const script = document.createElement('script');
         script.src = chrome.runtime.getURL('js/hls.min.js');
         script.onload = () => {
             const playerScript = document.createElement('script');
             playerScript.textContent = `
-          // Initialize the player with the HLS URL
           const player = document.getElementById('hlsVideoPlayer');
           const hls = new Hls();
           hls.loadSource("${message.hlsUrl}");
