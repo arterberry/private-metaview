@@ -18,13 +18,20 @@ const state = {
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing manifest loader...');
 
-    const hlsUrl = new URLSearchParams(window.location.search).get('src');
 
-    if (!hlsUrl) {
-        console.error('No HLS URL provided in query parameters');
-        updateStatus('Error: Add ?src=YOUR_HLS_URL to the URL.');
-        return;
+    function getFullSrc() {
+        // Get the raw src from the URL
+        const raw = new URLSearchParams(window.location.search).get('src');
+        console.log('[manifest.js] Raw "src" from query:', raw);
+
+        if (!raw) return null;
+
+        // Don't decode or modify the URL at all
+        console.log('[manifest.js] Using raw URL with all parameters preserved');
+        return raw;
     }
+
+    let hlsUrl = getFullSrc();
 
     console.log(`Loading HLS manifest from: ${hlsUrl}`);
     initHlsParser(hlsUrl);
@@ -79,15 +86,29 @@ function handleDirectMediaPlaylist(content, url) {
     }
 }
 
-
 // ---- Playlist Fetch ----
 function fetchManifest(url) {
-    return fetch(url)
-        .then(res => {
-            if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-            return res.text();
-        });
+    console.log('[manifest.js] Fetching URL:', url);
+    
+    return fetch(url, {
+        method: 'GET',
+        headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36'
+        },
+        credentials: 'omit', // Don't send cookies
+        mode: 'cors'         // Use CORS mode
+    })
+    .then(res => {
+        console.log('[manifest.js] Response status:', res.status, res.statusText);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}: ${res.statusText}`);
+        return res.text();
+    });
 }
+
+
 
 function isMasterPlaylist(content) {
     return content.includes('#EXT-X-STREAM-INF');
@@ -280,9 +301,17 @@ function addSegmentToUI(segment) {
                     updateHeaderContent(`Readable version of ${segment.url}`);
                 })
                 .catch(err => {
-                    updateBodyContent('Failed to load readable playlist');
+                    console.error('Segment fetch error:', err);
                     updateHeaderContent(`Error: ${err.message}`);
+                    updateBodyContent('Failed to load segment content');
+
+                    // Notify UI that this segment is expired
+                    const expiredEvent = new CustomEvent('segmentExpired', {
+                        detail: { id: segment.id, url: segment.url }
+                    });
+                    document.dispatchEvent(expiredEvent);
                 });
+
         });
 
         container.appendChild(readable);
@@ -401,11 +430,23 @@ function getSegmentDisplayName(url) {
 }
 
 function resolveUrl(url, base) {
-    if (/^(https?:)?\/\//.test(url)) return url;
-    const baseUrl = new URL(base);
-    return url.startsWith('/')
-        ? `${baseUrl.origin}${url}`
-        : `${baseUrl.origin}${baseUrl.pathname.replace(/[^/]+$/, '')}${url}`;
+    // If it's already an absolute URL, return it as is
+    if (/^(https?:)?\/\//.test(url)) {
+        return url;
+    }
+    
+    try {
+        // Use the built-in URL constructor for proper URL resolution
+        return new URL(url, base).href;
+    } catch (e) {
+        console.error('Error resolving URL:', e);
+        
+        // Fallback implementation
+        const baseUrl = new URL(base);
+        return url.startsWith('/')
+            ? `${baseUrl.origin}${url}`
+            : `${baseUrl.origin}${baseUrl.pathname.replace(/[^/]+$/, '')}${url}`;
+    }
 }
 
 function updateHeaderContent(content) {

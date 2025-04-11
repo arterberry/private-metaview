@@ -450,6 +450,38 @@ button#closeButton svg {
     /* fill: white; */
 }
 
+/* SEGMENT BADGES */
+
+.segment-badge {
+    background-color: #444;
+    border-radius: 4px;
+    color: #fff !important; 
+    font-size: 10px;
+    padding: 1px 5px;
+    margin-left: 6px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.segment-live      { background-color: #2ecc71; }
+.segment-audio     { background-color: #3498db; }
+.segment-ad        { background-color: #77289c; }
+.segment-playlist  { background-color: #9b59b6; }
+.segment-metadata  { background-color: #f39c12; }
+.segment-video     { background-color: #1abc9c; }
+.segment-audio-only { background-color: #3498db; }
+.segment-video-only { background-color: #1abc9c; }
+.segment-muxed { background-color: #314794; }
+
+
+.segment-expired {
+    margin-left: 10px;
+    color: #f00 !important;
+    font-weight: bold;
+    font-size: 11px;
+}
+
+
 
 
 
@@ -470,3 +502,4 @@ button#closeButton svg {
         padding: 6px 8px;
     }
 }
+

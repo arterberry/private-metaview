@@ -6,16 +6,16 @@ function isHlsUrl(url) {
         url.includes('/playlist.m3u8') || url.includes('isml/.m3u8');
 }
 
-// Skip hijack if we're already in the player
-if (
-    isHlsUrl(window.location.href) &&
-    !window.location.pathname.includes('player.html')
-) {
+if (isHlsUrl(window.location.href) && !window.location.pathname.includes('player.html')) {
     console.log("[content.js] Detected raw .m3u8 URL — launching player");
 
+    // Preserve the entire URL with all parameters by using encodeURIComponent twice
+    // const doubleEncodedUrl = encodeURIComponent(encodeURIComponent(window.location.href));
+
+    // In content.js
     chrome.runtime.sendMessage({
         action: "getPlayerUrl",
-        hlsUrl: window.location.href
+        hlsUrl: window.location.href  // Send the complete URL without encoding
     });
 }
 
@@ -53,30 +53,25 @@ if (!window.location.pathname.includes('player.html')) {
     });
 }
 
-// Listener to handle injected player from background — optional now
+// In content.js - Update the message handler
 chrome.runtime.onMessage.addListener((message) => {
-    if (
-        message.action === "openPlayer" &&
-        !window.location.pathname.includes('player.html')
-    ) {
-        console.log("[content.js] Injecting minimal player fallback");
-        document.documentElement.innerHTML = message.playerHtml;
+    if (message.action === "openPlayer" && !window.location.pathname.includes('player.html')) {
+        console.log("[content.js] Launching player.html with HLS URL");
 
-        const script = document.createElement('script');
-        script.src = chrome.runtime.getURL('js/hls.min.js');
-        script.onload = () => {
-            const playerScript = document.createElement('script');
-            playerScript.textContent = `
-          const player = document.getElementById('hlsVideoPlayer');
-          const hls = new Hls();
-          hls.loadSource("${message.hlsUrl}");
-          hls.attachMedia(player);
-          hls.on(Hls.Events.MANIFEST_PARSED, function() {
-            player.play();
-          });
-        `;
-            document.body.appendChild(playerScript);
-        };
-        document.body.appendChild(script);
+        // Ensure we're passing the complete URL with all parameters
+        // Use encodeURIComponent to preserve all special characters in the URL
+        const encodedUrl = encodeURIComponent(message.hlsUrl);
+        
+        console.log('[content.js] Launching player.html with encoded src:');
+        console.log('Raw URL:', message.hlsUrl);
+        console.log('Encoded URL:', encodedUrl);
+        
+        // Build the full player URL
+        const fullUrl = chrome.runtime.getURL("player.html") + `?src=${encodedUrl}`;
+        
+        console.log('Navigating to:', fullUrl);
+        console.log('Full URL length:', fullUrl.length);
+
+        window.location.href = fullUrl;
     }
 });
