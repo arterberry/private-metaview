@@ -12,6 +12,8 @@ https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tear
  CMCD parsing
  timeline correlation
 
+ My next goal is to work on playing this across multiple CDNs under test and then build comprehensive unit tests. Then make certain that in its current form - it is finding SCTE35 without issue.
+
 */
 
 // background.js
@@ -21,6 +23,30 @@ async function getPlayerHtml() {
 	const response = await fetch(chrome.runtime.getURL('player.html'));
 	return await response.text();
 }
+
+
+chrome.webNavigation.onBeforeNavigate.addListener(
+    (details) => {
+      if (details.frameId === 0 && details.url && details.url.match(/\.m3u8(?:[?#]|$)/)) {
+        const playerPageUrl = chrome.runtime.getURL("player.html");
+        const targetUrl = `${playerPageUrl}?src=${encodeURIComponent(details.url)}`;
+  
+        chrome.tabs.update(details.tabId, { url: targetUrl }, () => {
+          if (chrome.runtime.lastError) {
+            console.error(`Tab update error: ${chrome.runtime.lastError.message}`);
+          }
+        });
+      }
+    },
+    {
+      url: [{ urlMatches: ".*\\.m3u8.*" }]
+    }
+  );
+  
+  chrome.runtime.onInstalled.addListener(() => {
+    console.log("VIDINFRA HLS MetaPlayer installed.");
+  });
+  
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action === "getPlayerUrl") {

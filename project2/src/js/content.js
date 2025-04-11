@@ -6,18 +6,18 @@ function isHlsUrl(url) {
         url.includes('/playlist.m3u8') || url.includes('isml/.m3u8');
 }
 
-if (isHlsUrl(window.location.href) && !window.location.pathname.includes('player.html')) {
-    console.log("[content.js] Detected raw .m3u8 URL — launching player");
+// if (isHlsUrl(window.location.href) && !window.location.pathname.includes('player.html')) {
+//     console.log("[content.js] Detected raw .m3u8 URL — launching player");
 
-    // Preserve the entire URL with all parameters by using encodeURIComponent twice
-    // const doubleEncodedUrl = encodeURIComponent(encodeURIComponent(window.location.href));
+//     // Preserve the entire URL with all parameters by using encodeURIComponent twice
+//     // const doubleEncodedUrl = encodeURIComponent(encodeURIComponent(window.location.href));
 
-    // In content.js
-    chrome.runtime.sendMessage({
-        action: "getPlayerUrl",
-        hlsUrl: window.location.href  // Send the complete URL without encoding
-    });
-}
+//     // In content.js
+//     chrome.runtime.sendMessage({
+//         action: "getPlayerUrl",
+//         hlsUrl: window.location.href  // Send the complete URL without encoding
+//     });
+// }
 
 // Handle file drop logic only if not in player.html
 if (!window.location.pathname.includes('player.html')) {

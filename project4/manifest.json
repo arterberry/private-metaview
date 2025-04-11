@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Simple HLS Player (Nav Capture)",
+  "version": "0.5.0",
+  "description": "Captures .m3u8 navigations and updates tab to use the player page.",
+  "permissions": [
+    "webNavigation",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "player.html",
+        "player.js",
+        "lib/hls.min.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "icons": {}
+}

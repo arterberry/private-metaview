@@ -14,7 +14,8 @@
         "scripting",
         "declarativeNetRequest",
         "declarativeNetRequestFeedback",
-        "storage"
+        "storage",
+        "webNavigation"
     ],
     "host_permissions": [
         "<all_urls>"
@@ -37,6 +38,7 @@
             "run_at": "document_start"
         }
     ],
+    
     "web_accessible_resources": [
         {
             "resources": ["js/hls.min.js", "player.html"],
@@ -44,6 +46,12 @@
         }
     ],
     "declarative_net_request": {
-        "rule_resources": []
+        "rule_resources": [
+            {
+            "id": "hlsRedirectRules",
+            "enabled": true,
+            "path": "rules.json"
+            }
+        ]
     }
 }
