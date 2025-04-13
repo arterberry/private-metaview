@@ -76,7 +76,6 @@ function setupVerticalResize({ metadataResizeHandle, metadataContainer, videoCon
         startY = e.clientY;
         startHeight = parseInt(window.getComputedStyle(metadataContainer).height, 10) || 300;
         document.body.style.cursor = 'ns-resize';
-        // metadataResizeHandle.style.backgroundColor = '#4a86e8';
         e.preventDefault();
     });
 
@@ -127,7 +126,6 @@ function setupHorizontalResize({ resizeHandleVertical, metadataPanel, responsePa
     document.addEventListener('mouseup', () => {
         if (isDraggingHorizontal) {
             isDraggingHorizontal = false;
-            // resizeHandleVertical.style.backgroundColor = '';
             document.body.style.cursor = '';
         }
     });

@@ -24,8 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 xhr.setRequestHeader('Accept', '*/*');
                 xhr.setRequestHeader('Cache-Control', 'no-cache');
                 xhr.setRequestHeader('Pragma', 'no-cache');
-                
-                // ❌ Do NOT set 'User-Agent' — forbidden by browser
             },
             manifestLoadingTimeOut: 15000,
             manifestLoadingMaxRetry: 4

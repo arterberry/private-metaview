@@ -1,4 +1,5 @@
 // js/hls-listener.js
+
 console.log('[hls-listener] Initialized');
 
 document.addEventListener('hlsLoaded', (e) => {
