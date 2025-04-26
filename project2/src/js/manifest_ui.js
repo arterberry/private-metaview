@@ -41,19 +41,14 @@ function cacheDOMElements() {
 }
 
 function setupEventListeners() {
-    console.log('[manifest_ui] Setting up event listeners for HLS parser events.');
+    console.log('[manifest_ui] Setting up event listeners for HLS parser and fragment events.');
     document.addEventListener('hlsStatusUpdate', (e) => updateStatus(e.detail.message));
-    document.addEventListener('hlsSegmentAdded', (e) => addSegmentToUI(e.detail.segment));
+    document.addEventListener('hlsSegmentAdded', (e) => addSegmentToUI(e.detail.segment)); // For parsed items
+    document.addEventListener('hlsFragLoadedUI', (e) => addSegmentToUI(e.detail)); // For live fragments <<< ADD THIS LISTENER
     document.addEventListener('hlsPlaylistParsed', handlePlaylistParsed);
     document.addEventListener('hlsUpdateSegmentType', handleUpdateSegmentType);
-
-    // Listen for expiration events potentially dispatched by other modules (like segment-tags.js)
     document.addEventListener('segmentExpired', handleSegmentExpired);
-
-     // Also listen for HLS.js loading fragments (from hls-listener.js)
-     // This assumes hls-listener.js calls the global addSegmentToUI or dispatches a similar event
-     // Let's ensure addSegmentToUI is globally available for hls-listener.js
-     window.addSegmentToUI = addSegmentToUI;
+    // window.addSegmentToUI = addSegmentToUI;
 }
 
 
@@ -225,111 +220,247 @@ function handleUpdateSegmentType(event) {
 
 // ---- UI Update Functions ----
 
-function addSegmentToUI(segment) {
-    if (!uiElements.metadataList) return;
-    if (!segment || !segment.id || !segment.url) {
-        console.warn('[manifest_ui] Attempted to add invalid segment:', segment);
+// function addSegmentToUI(segment) {
+//     if (!uiElements.metadataList) return;
+//     if (!segment || !segment.id || !segment.url) {
+//         console.warn('[manifest_ui] Attempted to add invalid segment:', segment);
+//         return;
+//     }
+//      // Prevent duplicates in the UI list itself
+//      if (segmentElements.has(segment.id)) {
+//         // console.log(`[manifest_ui] Segment UI element already exists for ID: ${segment.id}`);
+//         return;
+//     }
+
+
+//     const el = document.createElement('div');
+//     el.setAttribute('data-segment-id', segment.id);
+//     el.setAttribute('data-segment-url', segment.url);
+//     el.setAttribute('data-segment-type', segment.type || 'segment'); // Add type attribute
+
+//     const timeSpan = document.createElement('span');
+//     timeSpan.className = 'segment-timestamp'; // Class for styling
+//     let prefix = '';
+//     let labelText = '';
+
+//     switch(segment.type) {
+//         case 'master':
+//             prefix = '[Master]';
+//             labelText = segment.title || getSegmentDisplayName(segment.url);
+//             el.classList.add('segment-item', 'segment-master');
+//             break;
+//         case 'media':
+//              prefix = '[Media]';
+//              labelText = segment.title || getSegmentDisplayName(segment.url);
+//              el.classList.add('segment-item', 'segment-media');
+//              break;
+//         case 'unknown': // The initial loading entry
+//             prefix = '[...]';
+//             labelText = segment.title || 'Loading...';
+//             el.classList.add('segment-item', 'segment-loading');
+//             break;
+//         case 'error': // Entry indicating load error
+//             prefix = '[Error]';
+//             labelText = segment.title || 'Load Failed';
+//             el.classList.add('segment-item', 'segment-error');
+//              // Make non-clickable or show error on click?
+//              el.style.cursor = 'not-allowed';
+//              el.style.opacity = '0.7';
+//              break;
+//         default: // Regular segment
+//             const wallClockTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hour12: false });
+//             prefix = `[${wallClockTime}]`;
+//             labelText = segment.title && segment.title !== 'no desc' ? segment.title : getSegmentDisplayName(segment.url);
+//             el.classList.add('segment-item', 'segment-fragment');
+//             break;
+//     }
+
+//     timeSpan.textContent = prefix;
+//     el.appendChild(timeSpan);
+
+//     // Add badge using segment-tags logic if available
+//     const badge = typeof buildBadge === 'function' ? buildBadge(classifySegment(segment.url)) : null; // Check if functions exist
+//     if (badge) {
+//         el.appendChild(badge);
+//     }
+
+//     // Add main label text
+//     const labelSpan = document.createElement('span');
+//     labelSpan.className = 'segment-label-text'; // Class for potential updates
+//     labelSpan.textContent = ` ${labelText}`; // Add space separation
+//     el.appendChild(labelSpan);
+
+
+//     // Store the element reference
+//     segmentElements.set(segment.id, el);
+
+//     // Append logic: Keep playlists at top, append segments below
+//     const firstSegment = uiElements.metadataList.querySelector('.segment-fragment');
+//     if (segment.type === 'master' || segment.type === 'media' || segment.type === 'unknown' || segment.type === 'error') {
+//         // Insert playlists/special types at the beginning or after existing ones
+//         const lastPlaylist = Array.from(uiElements.metadataList.querySelectorAll('.segment-master, .segment-media, .segment-loading, .segment-error')).pop();
+//          if (lastPlaylist) {
+//              lastPlaylist.parentNode.insertBefore(el, lastPlaylist.nextSibling);
+//          } else {
+//              uiElements.metadataList.prepend(el);
+//          }
+
+//     } else if (firstSegment) {
+//         // Insert regular segments before the first existing segment (if playlists exist)
+//         // Or just append if no segments exist yet
+//          uiElements.metadataList.insertBefore(el, firstSegment); // This keeps newest at top if playlists exist
+//          // To append at bottom: uiElements.metadataList.appendChild(el);
+
+//     } else {
+//         // Append if no segments or playlists exist yet
+//         uiElements.metadataList.appendChild(el);
+//     }
+
+//     // Scroll live view
+//     const parserState = window.HlsParser?.getState();
+//     if (parserState?.isLive && segment.type !== 'master' && segment.type !== 'media') {
+//          // Optional: Only scroll if already near the bottom
+//          const isScrolledToBottom = uiElements.metadataList.scrollHeight - uiElements.metadataList.clientHeight <= uiElements.metadataList.scrollTop + 50; // 50px tolerance
+//          if(isScrolledToBottom) {
+//              uiElements.metadataList.scrollTop = uiElements.metadataList.scrollHeight;
+//          }
+//     }
+// }
+
+// Replace the existing addSegmentToUI function in manifest_ui.js with this:
+
+function addSegmentToUI(segmentData) {
+    if (!uiElements.metadataList) {
+        console.error("[manifest_ui] Cannot add segment to UI: metadataList element not found.");
         return;
     }
-     // Prevent duplicates in the UI list itself
-     if (segmentElements.has(segment.id)) {
-        // console.log(`[manifest_ui] Segment UI element already exists for ID: ${segment.id}`);
+    if (!segmentData || !segmentData.id || !segmentData.url) {
+        console.warn('[manifest_ui] Attempted to add invalid segment data:', segmentData);
         return;
     }
 
+    // Prevent duplicates in the UI list itself based on ID
+    if (segmentElements.has(segmentData.id)) {
+        // console.log(`[manifest_ui] Segment UI element already exists for ID: ${segmentData.id}`);
+        return;
+    }
 
     const el = document.createElement('div');
-    el.setAttribute('data-segment-id', segment.id);
-    el.setAttribute('data-segment-url', segment.url);
-    el.setAttribute('data-segment-type', segment.type || 'segment'); // Add type attribute
+    el.setAttribute('data-segment-id', segmentData.id);
+    el.setAttribute('data-segment-url', segmentData.url);
+    el.setAttribute('data-segment-type', segmentData.type || 'segment'); // Ensure type is set
 
     const timeSpan = document.createElement('span');
     timeSpan.className = 'segment-timestamp'; // Class for styling
-    let prefix = '';
-    let labelText = '';
 
-    switch(segment.type) {
-        case 'master':
-            prefix = '[Master]';
-            labelText = segment.title || getSegmentDisplayName(segment.url);
-            el.classList.add('segment-item', 'segment-master');
-            break;
-        case 'media':
-             prefix = '[Media]';
-             labelText = segment.title || getSegmentDisplayName(segment.url);
-             el.classList.add('segment-item', 'segment-media');
-             break;
-        case 'unknown': // The initial loading entry
-            prefix = '[...]';
-            labelText = segment.title || 'Loading...';
-            el.classList.add('segment-item', 'segment-loading');
-            break;
-        case 'error': // Entry indicating load error
-            prefix = '[Error]';
-            labelText = segment.title || 'Load Failed';
-            el.classList.add('segment-item', 'segment-error');
-             // Make non-clickable or show error on click?
-             el.style.cursor = 'not-allowed';
-             el.style.opacity = '0.7';
-             break;
-        default: // Regular segment
-            const timestamp = formatSegmentTime(segment.sequence ?? 0, segment.duration ?? 0);
-            prefix = `[${timestamp}]`;
-            labelText = segment.title && segment.title !== 'no desc' ? segment.title : getSegmentDisplayName(segment.url);
-            el.classList.add('segment-item', 'segment-fragment');
-            break;
-    }
-
-    timeSpan.textContent = prefix;
+    // --- Standardized Wall-Clock Timestamp (hh:mm:ss) ---
+    const wallClockTime = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false // Use 24-hour format
+    });
+    timeSpan.textContent = `[${wallClockTime}]`;
     el.appendChild(timeSpan);
+    // --- End Timestamp Logic ---
 
-    // Add badge using segment-tags logic if available
-    const badge = typeof buildBadge === 'function' ? buildBadge(classifySegment(segment.url)) : null; // Check if functions exist
+    // --- Badge Logic (using segment-tags.js functions if available) ---
+
+    const classification = typeof classifySegment === 'function'
+        ? classifySegment(segmentData.url, segmentData.type)
+        : (segmentData.type || 'Segment');
+    const badge = typeof buildBadge === 'function' ? buildBadge(classification) : null;
     if (badge) {
-        el.appendChild(badge);
+        // Insert badge after the timestamp
+        el.appendChild(badge); // Simpler append, CSS handles margin
     }
+    // --- End Badge Logic ---
 
-    // Add main label text
+    // --- Label Text ---
+    let labelText = '';
+    switch(segmentData.type) {
+        case 'master':
+        case 'media':
+        case 'unknown':
+        case 'error':
+            // Use provided title or generate from URL for playlists/special types
+            labelText = segmentData.title || getSegmentDisplayName(segmentData.url);
+            break;
+        case 'fragment':
+            // For live fragments, use filename, maybe add level/SN if needed
+            labelText = getSegmentDisplayName(segmentData.url);
+            // Optionally add more info: labelText += ` (Lvl: ${segmentData.level}, SN: ${segmentData.sequence})`;
+            break;
+        default: // 'segment' (parsed)
+            // Use title if meaningful, otherwise filename
+            labelText = segmentData.title && segmentData.title !== 'no desc' ? segmentData.title : getSegmentDisplayName(segmentData.url);
+            break;
+    }
     const labelSpan = document.createElement('span');
-    labelSpan.className = 'segment-label-text'; // Class for potential updates
+    labelSpan.className = 'segment-label-text';
     labelSpan.textContent = ` ${labelText}`; // Add space separation
     el.appendChild(labelSpan);
+    // --- End Label Text ---
+
+    // --- Set Element Class based on Type ---
+    el.classList.add('segment-item'); // Base class
+    switch (segmentData.type) {
+        case 'master': el.classList.add('segment-master'); break;
+        case 'media': el.classList.add('segment-media'); break;
+        case 'unknown': el.classList.add('segment-loading'); break;
+        case 'error': el.classList.add('segment-error'); break;
+        case 'fragment': el.classList.add('segment-fragment', 'segment-live-fragment'); break; // Add specific class for live
+        default: el.classList.add('segment-fragment'); break; // Parsed segments
+    }
+    // --- End Element Class ---
 
 
     // Store the element reference
-    segmentElements.set(segment.id, el);
+    segmentElements.set(segmentData.id, el);
 
-    // Append logic: Keep playlists at top, append segments below
-    const firstSegment = uiElements.metadataList.querySelector('.segment-fragment');
-    if (segment.type === 'master' || segment.type === 'media' || segment.type === 'unknown' || segment.type === 'error') {
+
+    // --- Insertion Logic ---
+    if (segmentData.type === 'master' || segmentData.type === 'media' || segmentData.type === 'unknown' || segmentData.type === 'error') {
         // Insert playlists/special types at the beginning or after existing ones
-        const lastPlaylist = Array.from(uiElements.metadataList.querySelectorAll('.segment-master, .segment-media, .segment-loading, .segment-error')).pop();
-         if (lastPlaylist) {
-             lastPlaylist.parentNode.insertBefore(el, lastPlaylist.nextSibling);
+        const lastSpecial = Array.from(uiElements.metadataList.querySelectorAll('.segment-master, .segment-media, .segment-loading, .segment-error')).pop();
+         if (lastSpecial) {
+             lastSpecial.insertAdjacentElement('afterend', el); // Insert after the last special item
          } else {
-             uiElements.metadataList.prepend(el);
+             uiElements.metadataList.prepend(el); // Insert at the very beginning if no specials exist
          }
-
-    } else if (firstSegment) {
-        // Insert regular segments before the first existing segment (if playlists exist)
-        // Or just append if no segments exist yet
-         uiElements.metadataList.insertBefore(el, firstSegment); // This keeps newest at top if playlists exist
-         // To append at bottom: uiElements.metadataList.appendChild(el);
-
-    } else {
-        // Append if no segments or playlists exist yet
+    } else if (segmentData.type === 'segment') {
+         // Insert parsed segments AFTER all playlists/specials but BEFORE live fragments
+         const firstFragment = uiElements.metadataList.querySelector('.segment-live-fragment');
+         if (firstFragment) {
+              uiElements.metadataList.insertBefore(el, firstFragment); // Insert before the first live fragment
+         } else {
+             // If no live fragments yet, just append after playlists/specials
+             const lastSpecial = Array.from(uiElements.metadataList.querySelectorAll('.segment-master, .segment-media, .segment-loading, .segment-error')).pop();
+             if (lastSpecial) {
+                  lastSpecial.insertAdjacentElement('afterend', el);
+             } else {
+                  // If no specials either, append (shouldn't happen often if playlists load first)
+                   uiElements.metadataList.appendChild(el);
+             }
+         }
+    } else if (segmentData.type === 'fragment') {
+        // Append live fragments to the very end of the list
         uiElements.metadataList.appendChild(el);
-    }
 
-    // Scroll live view
-    const parserState = window.HlsParser?.getState();
-    if (parserState?.isLive && segment.type !== 'master' && segment.type !== 'media') {
-         // Optional: Only scroll if already near the bottom
-         const isScrolledToBottom = uiElements.metadataList.scrollHeight - uiElements.metadataList.clientHeight <= uiElements.metadataList.scrollTop + 50; // 50px tolerance
-         if(isScrolledToBottom) {
-             uiElements.metadataList.scrollTop = uiElements.metadataList.scrollHeight;
-         }
+        // Auto-scroll logic for live fragments
+        const isScrolledNearBottom = uiElements.metadataList.scrollHeight - uiElements.metadataList.clientHeight <= uiElements.metadataList.scrollTop + 60; // 60px tolerance
+        if (isScrolledNearBottom) {
+            // Use requestAnimationFrame for smoother scrolling after DOM update
+            requestAnimationFrame(() => {
+                 uiElements.metadataList.scrollTop = uiElements.metadataList.scrollHeight;
+            });
+        }
+    } else {
+         // Fallback: Append any other unknown types
+         console.warn(`[manifest_ui] Unknown segment type "${segmentData.type}" for insertion, appending.`);
+         uiElements.metadataList.appendChild(el);
     }
+    // --- End Insertion Logic ---
 }
 
 
@@ -782,46 +913,56 @@ document.head.appendChild(style);
 
 // ---- Exposed Logging Function ----
 // Allows other modules (like player_loader) to add simple log entries to the metadata list
-function addPlayerLogEntry(text, isError = false) {
-    const metadataList = document.getElementById('metadataList'); // Get reference directly
-    if (!metadataList) return;
+// function addPlayerLogEntry(text, isError = false) {
+//     const metadataList = document.getElementById('metadataList'); // Get reference directly
+//     if (!metadataList) return;
 
-    const el = document.createElement('div');
-    el.className = 'segment-item segment-log-entry'; // Add a specific class for styling if needed
+//     const el = document.createElement('div');
+//     el.className = 'segment-item segment-log-entry'; // Add a specific class for styling if needed
 
-    // Basic text content, handle newlines simply
-    el.style.whiteSpace = 'pre-wrap'; // Ensure newlines are rendered
-    el.textContent = text;
+//     // Basic text content, handle newlines simply
+//     el.style.whiteSpace = 'pre-wrap'; // Ensure newlines are rendered
+//     el.textContent = text;
 
-    // Timestamp
-    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-    const timeSpan = document.createElement('span');
-    timeSpan.className = 'segment-timestamp';
-    timeSpan.textContent = `[${timestamp}]`;
-    el.prepend(timeSpan); // Add timestamp at the beginning
+//     // Timestamp
+//     const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+//     const timeSpan = document.createElement('span');
+//     timeSpan.className = 'segment-timestamp';
+//     timeSpan.textContent = `[${timestamp}]`;
+//     el.prepend(timeSpan); // Add timestamp at the beginning
 
-    if (isError) {
-        el.style.color = "#ff8c8c"; // Lighter red for dark background
-        // el.style.fontWeight = "bold"; // Optional bolding
-    } else {
-         el.style.color = "#bdbdbd"; // Dim color for regular logs
-    }
+//     if (isError) {
+//         el.style.color = "#ff8c8c"; // Lighter red for dark background
+//         // el.style.fontWeight = "bold"; // Optional bolding
+//     } else {
+//          el.style.color = "#bdbdbd"; // Dim color for regular logs
+//     }
 
-    // Insert log entry at the top
-    metadataList.insertBefore(el, metadataList.firstChild);
+//     // Insert log entry at the top
+//     metadataList.insertBefore(el, metadataList.firstChild);
 
-    // Optional: Limit number of log entries? (More complex)
-}
+//     // Optional: Limit number of log entries? (More complex)
+// }
 // Make it globally accessible
 window.addPlayerLogEntry = addPlayerLogEntry;
 
 console.log('[manifest_ui] Player log function exposed.');
 
 // Add minimal CSS for log entries if needed (optional)
-const logStyle = document.createElement('style');
-logStyle.textContent = `
- .segment-log-entry { padding: 3px 5px 3px 10px; border-bottom: 1px dashed #444; font-size: 11px; cursor: default; }
- .segment-log-entry:hover { background-color: initial; } /* Disable hover */
- .segment-log-entry .segment-timestamp { width: auto; text-align: left; margin-right: 8px; color: #888; }
-`;
-document.head.appendChild(logStyle);
+// const logStyle = document.createElement('style');
+// logStyle.textContent = `
+//  .segment-log-entry { padding: 3px 5px 3px 10px; border-bottom: 1px dashed #444; font-size: 11px; cursor: default; }
+//  .segment-log-entry:hover { background-color: initial; } /* Disable hover */
+
+//  /* --- REPLACED RULE --- */
+//  .segment-log-entry .segment-timestamp {
+//     display: inline-block; /* Needed for width */
+//     width: 80px;           /* Match segment timestamp width */
+//     text-align: right;     /* Match segment timestamp alignment */
+//     margin-right: 5px;     /* Match segment timestamp margin */
+//     color: #888;           /* Keep color distinct? Or match #666? */
+//     font-size: 0.9em;      /* Match segment timestamp size */
+//  }
+//  /* --- END REPLACED RULE --- */
+// `;
+// document.head.appendChild(logStyle);

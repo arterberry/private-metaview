@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
             manifestLoadingMaxRetry: 4,
             manifestLoadingRetryDelay: 1000,
             manifestLoadingMaxRetryTimeout: 64000,
-             // --- End of old config ---
+            // --- End of old config ---
 
             // xhrSetup from existing code (modify if needed)
             xhrSetup: function (xhr, url) {
@@ -56,20 +56,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
         hls.on(Hls.Events.MANIFEST_LOADING, function (event, data) {
             console.log("[player_loader] HLS Event: Manifest loading:", data.url);
-            if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Manifest loading: ${getShortUrl(data.url)}`);
+            // if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Manifest loading: ${getShortUrl(data.url)}`);
         });
 
-        hls.on(Hls.Events.FRAG_LOADING, function (event, data) {            
+        hls.on(Hls.Events.FRAG_LOADING, function (event, data) {
             console.log(`[player_loader] HLS Event: Fragment loading: ${data.frag.sn} (${data.frag.url})`);
             // if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Frag loading: ${data.frag.sn} (${getShortUrl(data.frag.url)})`);
         });
 
         hls.on(Hls.Events.FRAG_LOADED, function (event, data) {
-             console.log(`[player_loader] HLS Event: Fragment loaded: ${data.frag.sn} (${getShortUrl(data.frag.url)})`);
-             let segmentInfo = `Frag loaded: ${data.frag.sn}, Dur: ${data.frag.duration.toFixed(2)}s, Level: ${data.frag.level}`;
-             console.log(`[player_loader] HLS Event: Segment Info: : ${segmentInfo}`); 
-             // if (window.addPlayerLogEntry) window.addPlayerLogEntry(segmentInfo);
-        });        
+            const frag = data.frag;
+            const url = frag.url;
+            const sn = frag.sn; // Sequence number
+            const duration = frag.duration;
+            const level = frag.level;
+
+            console.log(`[player_loader] HLS Event: Fragment loaded: ${sn} (${getShortUrl(url)})`);
+
+            // Create detail object for the UI event
+            const fragmentDetail = {
+                // Create a unique-ish ID for UI purposes
+                id: `fragment_${sn}_${level}`,
+                url: url,
+                title: getSegmentDisplayName(url), // Use helper for filename
+                type: 'fragment', // Specific type for live fragments
+                sequence: sn,
+                duration: duration,
+                level: level,
+                // Add any other relevant details from 'frag' if needed
+            };
+
+            // Dispatch event for manifest_ui.js to handle
+            document.dispatchEvent(new CustomEvent('hlsFragLoadedUI', { detail: fragmentDetail }));
+        });
 
         hls.on(Hls.Events.ERROR, function (event, data) {
             console.error("[player_loader] HLS Error:", data);
@@ -91,9 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Log general error unless it was just a buffer stall (which we already logged)
             if (data.details !== Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
-                 if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true); // Log as error
+                if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true); // Log as error
             }
-
 
             // Fatal Error Handling
             if (data.fatal) {
@@ -102,17 +120,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Optional: Add recovery logic here if needed
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
-                         console.log("Attempting recovery: hls.startLoad()");
-                         hls.startLoad();
-                         break;
+                        console.log("Attempting recovery: hls.startLoad()");
+                        hls.startLoad();
+                        break;
                     case Hls.ErrorTypes.MEDIA_ERROR:
-                         console.log("Attempting recovery: hls.recoverMediaError()");
-                         hls.recoverMediaError();
-                         break;
+                        console.log("Attempting recovery: hls.recoverMediaError()");
+                        hls.recoverMediaError();
+                        break;
                     default:
-                         console.log("Non-recoverable fatal error or unhandled type.");
-                         // hls.destroy(); // Use destroy cautiously
-                         break;
+                        console.log("Non-recoverable fatal error or unhandled type.");
+                        // hls.destroy(); // Use destroy cautiously
+                        break;
                 }
             }
         });
@@ -140,31 +158,30 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('[player_loader] Video container not found for buffering indicator.');
         }
 
-         // Also listen for BUFFER_APPENDING which means we might recover
-         hls.on(Hls.Events.BUFFER_APPENDING, function() {
-              if (video.paused && video.readyState >= 3) {
-                 // If paused but enough data, hide indicator
-                 bufferingIndicator.style.display = 'none';
-             }
-         });
-         hls.on(Hls.Events.BUFFER_EOS, function() {
-              // End of stream, hide indicator
-              bufferingIndicator.style.display = 'none';
-         });
-
+        // Also listen for BUFFER_APPENDING which means we might recover
+        hls.on(Hls.Events.BUFFER_APPENDING, function () {
+            if (video.paused && video.readyState >= 3) {
+                // If paused but enough data, hide indicator
+                bufferingIndicator.style.display = 'none';
+            }
+        });
+        hls.on(Hls.Events.BUFFER_EOS, function () {
+            // End of stream, hide indicator
+            bufferingIndicator.style.display = 'none';
+        });
 
         // Show/Hide based on video element events
         video.addEventListener('waiting', function () {
             // 'waiting' fires when playback stops due to lack of data
-             console.log('[player_loader] Video event: waiting (buffering)');
+            console.log('[player_loader] Video event: waiting (buffering)');
             bufferingIndicator.style.display = 'block';
         });
         video.addEventListener('playing', function () {
-             // 'playing' fires when playback resumes after buffering or seeking
-             console.log('[player_loader] Video event: playing');
+            // 'playing' fires when playback resumes after buffering or seeking
+            console.log('[player_loader] Video event: playing');
             bufferingIndicator.style.display = 'none';
         });
-         video.addEventListener('seeking', function () {
+        video.addEventListener('seeking', function () {
             // Show buffering briefly during seek
             bufferingIndicator.style.display = 'block';
         });
@@ -175,11 +192,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         video.addEventListener('pause', function () {
-             // Hide indicator if user pauses
-             bufferingIndicator.style.display = 'none';
+            // Hide indicator if user pauses
+            bufferingIndicator.style.display = 'none';
         });
-
-
         // --- End of Buffering Logic ---
 
         hls.loadSource(hlsUrl);
@@ -188,12 +203,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // MANIFEST_PARSED listener (already existed, slightly modified log)
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
             console.log('[player_loader] HLS Event: Manifest parsed. Attempting playback.');
-            if (window.addPlayerLogEntry) window.addPlayerLogEntry('Manifest parsed, starting playback.');
+            // if (window.addPlayerLogEntry) window.addPlayerLogEntry('Manifest parsed, starting playback.');
             video.play().catch(err => {
-                 console.warn('[player_loader] Autoplay failed:', err.message);
-                 if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Autoplay failed: ${err.message}`, true);
-                 // Show controls so user can play manually
-                 video.controls = true;
+                console.warn('[player_loader] Autoplay failed:', err.message);
+                if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Autoplay failed: ${err.message}`, true);
+                // Show controls so user can play manually
+                video.controls = true;
             });
         });
 
@@ -202,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.dispatchEvent(new CustomEvent('hlsLoaded', { detail: { hls } }));
 
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        
+
         window.hlsPlayerInstance = null; // no HLS.js instance
 
         // Safari / native fallback
@@ -217,9 +232,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         // Add basic error logging for native playback
         video.addEventListener('error', (e) => {
-             console.error('[player_loader] Native video error:', e);
-             const error = video.error;
-             if (window.addPlayerLogEntry && error) window.addPlayerLogEntry(`Native Player Error: Code ${error.code}, ${error.message}`, true);
+            console.error('[player_loader] Native video error:', e);
+            const error = video.error;
+            if (window.addPlayerLogEntry && error) window.addPlayerLogEntry(`Native Player Error: Code ${error.code}, ${error.message}`, true);
         });
     } else {
         window.hlsPlayerInstance = null; // no HLS.js instance
