@@ -1,4 +1,4 @@
-// manifest.js - HLS Manifest Parser and Loader
+// js/manifest.js - HLS Manifest Parser and Loader
 
 console.log('HLS Manifest Parser loading...');
 

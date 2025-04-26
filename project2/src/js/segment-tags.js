@@ -1,4 +1,4 @@
-// segment-tags.js
+// js/segment-tags.js
 console.log('[segment-tags] Enhancing segment visuals');
 
 document.addEventListener('DOMContentLoaded', () => {

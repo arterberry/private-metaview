@@ -94,28 +94,71 @@ function setupUIHandlers() {
     if (uiElements.metadataList) {
         uiElements.metadataList.addEventListener('click', (e) => {
             const targetElement = e.target.closest('div[data-segment-id]'); // Find the segment container div
+            
+            // if (targetElement) {
+            //     const segmentId = targetElement.getAttribute('data-segment-id');
+            //     const segmentUrl = targetElement.getAttribute('data-segment-url'); // Get URL for fetching
+            //     const segmentType = targetElement.getAttribute('data-segment-type'); // Get type
+
+            //     console.log(`[manifest_ui] Clicked on segment element: ID=${segmentId}, Type=${segmentType}`);
+
+            //     // Retrieve the full segment object if possible (might need access to parser state or cache it here)
+            //     // For now, fetch based on URL. If state access is needed, we'd call HlsParser.getState()
+            //     const parserState = window.HlsParser?.getState();
+            //     const segment = parserState?.segmentMap.get(segmentUrl);
+
+            //     if (segment) {
+            //          selectSegment(segment, targetElement);
+            //     } else if (segmentUrl && segmentType) {
+            //         // Fallback if segment object not found in parser state (e.g., added by hls-listener)
+            //         // Create a minimal object for fetching
+            //         selectSegment({ id: segmentId, url: segmentUrl, type: segmentType }, targetElement);
+            //     } else {
+            //         console.warn(`[manifest_ui] Could not find segment data for ID: ${segmentId}`);
+            //     }
+            // }
+
             if (targetElement) {
                 const segmentId = targetElement.getAttribute('data-segment-id');
-                const segmentUrl = targetElement.getAttribute('data-segment-url'); // Get URL for fetching
-                const segmentType = targetElement.getAttribute('data-segment-type'); // Get type
+                const segmentUrl = targetElement.getAttribute('data-segment-url');
+                const segmentType = targetElement.getAttribute('data-segment-type');
 
-                console.log(`[manifest_ui] Clicked on segment element: ID=${segmentId}, Type=${segmentType}`);
+                console.log(`[manifest_ui] Clicked on element: ID=${segmentId}, Type=${segmentType}, URL=${segmentUrl}`); // Enhanced log
 
-                // Retrieve the full segment object if possible (might need access to parser state or cache it here)
-                // For now, fetch based on URL. If state access is needed, we'd call HlsParser.getState()
-                const parserState = window.HlsParser?.getState();
-                const segment = parserState?.segmentMap.get(segmentUrl);
+                if (!segmentUrl) {
+                    console.warn('[manifest_ui] Clicked item is missing data-segment-url attribute.');
+                    return; // Cannot proceed without URL
+                }
 
-                if (segment) {
-                     selectSegment(segment, targetElement);
-                } else if (segmentUrl && segmentType) {
-                    // Fallback if segment object not found in parser state (e.g., added by hls-listener)
-                    // Create a minimal object for fetching
+                if (segmentType === 'master' || segmentType === 'media') {
+                    // Playlist clicked: Pass minimal info needed for fetchPlaylistContent
+                    console.log('[manifest_ui] Playlist item clicked. Selecting...');
                     selectSegment({ id: segmentId, url: segmentUrl, type: segmentType }, targetElement);
+
+                } else if (segmentType === 'segment' || segmentType === 'fragment' || !segmentType /* Assume segment if type missing */) {
+                    // Segment clicked: Try getting full object from parser state
+                    console.log('[manifest_ui] Segment item clicked. Trying to get state...');
+                    const parserState = window.HlsParser?.getState();
+                    const segmentObject = parserState?.segmentMap.get(segmentUrl); // segmentMap stores segments by URL
+
+                    if (segmentObject) {
+                         console.log('[manifest_ui] Found full segment object in state.');
+                         selectSegment(segmentObject, targetElement);
+                    } else {
+                         // Fallback if segment object not found (e.g., added by hls-listener or state issue)
+                         console.warn(`[manifest_ui] Segment object not found in parser state for URL: ${segmentUrl}. Using minimal info.`);
+                         selectSegment({ id: segmentId, url: segmentUrl, type: segmentType || 'segment' }, targetElement);
+                    }
                 } else {
-                    console.warn(`[manifest_ui] Could not find segment data for ID: ${segmentId}`);
+                     // Handle other types like 'unknown', 'error'
+                     console.log(`[manifest_ui] Clicked on element of type: ${segmentType}. Selecting with minimal info.`);
+                     // Get title from element text for display
+                     const titleNode = targetElement.querySelector('.segment-label-text') || targetElement;
+                     const title = titleNode ? titleNode.textContent.trim() : 'Unknown Item';
+                     selectSegment({ id: segmentId, url: segmentUrl, type: segmentType, title: title }, targetElement);
                 }
             }
+
         });
     } else {
         console.error("[manifest_ui] metadataList element not found for event delegation.");
@@ -327,46 +370,117 @@ function selectSegment(segment, segmentElement) {
      }
 }
 
+// function fetchPlaylistContent(url, type) {
+//      updateHeaderContent(`Fetching ${type} playlist content...`);
+//      updateBodyContent(''); // Clear body while fetching
+
+//      // Try getting content from parser state first to avoid re-fetch
+//      const parserState = window.HlsParser?.getState();
+//      let content = null;
+//      if (type === 'master' && parserState?.masterUrl === url) {
+//          content = parserState.masterManifest;
+//      } else if (type === 'media') {
+//          const playlistInfo = Object.values(parserState?.mediaPlaylists || {}).find(p => p.url === url);
+//          content = playlistInfo?.content;
+//      }
+
+
+//      if (content) {
+//          console.log(`[manifest_ui] Using cached ${type} playlist content.`);
+//          displayPlaylistDetails(url, content, type);
+//      } else {
+//          console.log(`[manifest_ui] Fetching ${type} playlist content from network: ${url}`);
+//          fetch(url, { cache: 'no-store' }) // Ensure fresh fetch if not cached
+//              .then(res => {
+//                  if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+//                  // Display headers even for playlists
+//                  const headers = [];
+//                  res.headers.forEach((v, k) => headers.push(`${k}: ${v}`));
+//                  updateHeaderContent(`Response Headers for ${getSegmentDisplayName(url)}:\n${'-'.repeat(20)}\n${headers.join('\n')}`);
+//                  return res.text();
+//              })
+//              .then(text => {
+//                   displayPlaylistDetails(url, text, type);
+//              })
+//              .catch(err => {
+//                  console.error(`[manifest_ui] ${type} playlist fetch error:`, err);
+//                  updateHeaderContent(`Error fetching ${type} playlist: ${err.message}`);
+//                  updateBodyContent(`Failed to load content for: ${url}`);
+//                  handleSegmentExpired({ detail: { url: url } }); // Mark as potentially expired/failed in UI
+//              });
+//      }
+//  }
+
 function fetchPlaylistContent(url, type) {
-     updateHeaderContent(`Fetching ${type} playlist content...`);
-     updateBodyContent(''); // Clear body while fetching
+    updateHeaderContent(`Fetching ${type} playlist content...`);
+    updateBodyContent(''); // Clear body while fetching
 
-     // Try getting content from parser state first to avoid re-fetch
-     const parserState = window.HlsParser?.getState();
-     let content = null;
-     if (type === 'master' && parserState?.masterUrl === url) {
-         content = parserState.masterManifest;
-     } else if (type === 'media') {
-         const playlistInfo = Object.values(parserState?.mediaPlaylists || {}).find(p => p.url === url);
-         content = playlistInfo?.content;
-     }
+    // Try getting content from parser state first to avoid re-fetch
+    const parserState = window.HlsParser?.getState();
+    let content = null;
+    let foundInState = false; // Flag to track if we found it in state
+
+    if (parserState) {
+       console.log(`[manifest_ui] Checking parser state for ${type} playlist: ${url}`);
+       if (type === 'master' && parserState.masterUrl === url) {
+           content = parserState.masterManifest;
+           if (content) {
+                console.log('[manifest_ui] Found master content in state.');
+                foundInState = true;
+           }
+       } else if (type === 'media') {
+           // Find the correct media playlist entry in the state object by URL
+           const playlistInfo = Object.values(parserState.mediaPlaylists || {}).find(p => p.url === url);
+           if (playlistInfo && playlistInfo.content) {
+               content = playlistInfo.content;
+               console.log(`[manifest_ui] Found media content in state for URL: ${url}`);
+               foundInState = true;
+           } else {
+                console.log(`[manifest_ui] Media playlist content not found in state for URL: ${url}. Known media playlist URLs:`, Object.values(parserState.mediaPlaylists || {}).map(p => p.url));
+           }
+       }
+    } else {
+        console.warn('[manifest_ui] Parser state not available to check for cached content.');
+    }
 
 
-     if (content) {
-         console.log(`[manifest_ui] Using cached ${type} playlist content.`);
-         displayPlaylistDetails(url, content, type);
-     } else {
-         console.log(`[manifest_ui] Fetching ${type} playlist content from network: ${url}`);
-         fetch(url, { cache: 'no-store' }) // Ensure fresh fetch if not cached
-             .then(res => {
-                 if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-                 // Display headers even for playlists
-                 const headers = [];
-                 res.headers.forEach((v, k) => headers.push(`${k}: ${v}`));
-                 updateHeaderContent(`Response Headers for ${getSegmentDisplayName(url)}:\n${'-'.repeat(20)}\n${headers.join('\n')}`);
-                 return res.text();
-             })
-             .then(text => {
-                  displayPlaylistDetails(url, text, type);
-             })
-             .catch(err => {
-                 console.error(`[manifest_ui] ${type} playlist fetch error:`, err);
-                 updateHeaderContent(`Error fetching ${type} playlist: ${err.message}`);
-                 updateBodyContent(`Failed to load content for: ${url}`);
-                 handleSegmentExpired({ detail: { url: url } }); // Mark as potentially expired/failed in UI
-             });
-     }
- }
+    if (foundInState && content) {
+        console.log(`[manifest_ui] Using cached ${type} playlist content.`);
+        // Need to simulate headers slightly if using cached content
+        const pseudoHeaders = [
+            `Status: 200 OK (Cached)`,
+            `URL: ${url}`,
+            `Content-Type: application/vnd.apple.mpegurl`, // Assume standard type
+            `X-Content-Source: Parser Cache`
+        ];
+        updateHeaderContent(`Response Headers (from cache):\n${'-'.repeat(20)}\n${pseudoHeaders.join('\n')}`);
+        displayPlaylistDetails(url, content, type);
+    } else {
+        // Fallback to fetching from network if not found in state
+        console.log(`[manifest_ui] Fetching ${type} playlist content from network: ${url}`);
+        fetch(url, { cache: 'no-store' }) // Ensure fresh fetch if not cached
+            .then(res => {
+                // Display actual headers from network response
+                const headers = [];
+                headers.push(`Status: ${res.status} ${res.statusText}`);
+                headers.push(`URL: ${res.url}`); // Show final URL after potential redirects
+                res.headers.forEach((v, k) => headers.push(`${k}: ${v}`));
+                updateHeaderContent(`Response Headers (from network):\n${'-'.repeat(20)}\n${headers.join('\n')}`);
+
+                if (!res.ok) throw new Error(`HTTP error ${res.status} ${res.statusText}`);
+                return res.text();
+            })
+            .then(text => {
+                 displayPlaylistDetails(url, text, type);
+            })
+            .catch(err => {
+                console.error(`[manifest_ui] ${type} playlist fetch error:`, err);
+                updateHeaderContent(`Error fetching ${type} playlist: ${err.message}`);
+                updateBodyContent(`Failed to load content for: ${url}`);
+                handleSegmentExpired({ detail: { url: url } }); // Mark as potentially expired/failed in UI
+            });
+    }
+}
 
  function displayPlaylistDetails(url, content, type) {
      // Update headers (show minimal info, headers were maybe shown during fetch)
@@ -390,7 +504,8 @@ function fetchPlaylistContent(url, type) {
              headers.push(`Status: ${res.status} ${res.statusText}`);
              headers.push(`URL: ${res.url}`); // Show final URL after potential redirects
              res.headers.forEach((v, k) => headers.push(`${k}: ${v}`));
-             updateHeaderContent(`Response Headers:\n${'-'.repeat(20)}\n${headers.join('\n')}`);
+            //  updateHeaderContent(`Response Headers:\n${'-'.repeat(20)}\n${headers.join('\n')}`);
+             updateHeaderContent(`${headers.join('\n')}`);
 
             if (!res.ok) {
                 throw new Error(`HTTP error ${res.status} ${res.statusText}`);

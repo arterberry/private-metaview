@@ -6,6 +6,7 @@
     <title>VIDINFRA HLS MetaPlayer</title>
     <link rel="stylesheet" href="css/player.css">
     <link rel="stylesheet" href="css/side_panel.css">
+    <link rel="stylesheet" href="css/resolution_manager.css">
 </head>
 
 <body>
@@ -81,7 +82,7 @@
                     <!-- Inspect Tab -->
                     <div class="tab-pane active" id="inspect-tab">
                         <div class="resolutions-section">
-                            <div class="resolutions-label">Available Resolutions:</div>
+                            <div class="resolutions-label">Available Resolutions (ABR):</div>
                             <div id="resolutionList" class="resolution-container"></div>
                         </div>
 
@@ -140,11 +141,12 @@
     <!-- Load HLS core and live listener early -->
     <script defer src="js/hls.min.js"></script>
     <script defer src="js/hls-listener.js"></script>
+    <script defer src="js/hls_parser.js"></script>
     <script defer src="js/player_ui.js"></script>
     <script defer src="js/player_loader.js"></script>
-    <script defer src="js/manifest.js"></script>
+    <script defer src="js/resolution_manager.js"></script>
+    <script defer src="js/manifest_ui.js"></script>
     <script defer src="js/segment-tags.js"></script>
-
 
 </body>
 

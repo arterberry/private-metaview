@@ -1,22 +1,4 @@
-// background.js
-/*
-https://d1ns9k5qrxc5w8.cloudfront.net/9bf31c7ff062936a067ca6938984d388/k8s/live/scte35.isml/.m3u8
-
-https://demo.unified-streaming.com/k8s/features/stable/video/tears-of-steel/tears-of-steel.ism/.m3u8
-
-*/
-
-/*
- NEXT TASKS
- CDN tagging
- CMCD parsing
- timeline correlation
-
- My next goal is to work on playing this across multiple CDNs under test and then build comprehensive unit tests. Then make certain that in its current form - it is finding SCTE35 without issue.
-
-*/
-
-// background.js
+// js/background.js
 
 // Function to fetch the player.html content
 async function getPlayerHtml() {
@@ -74,6 +56,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 });
 
 // When the extension icon is clicked, open the side panel
-chrome.action.onClicked.addListener((tab) => {
-	chrome.sidePanel.open({ tabId: tab.id });
-});
+// chrome.action.onClicked.addListener((tab) => {
+// 	chrome.sidePanel.open({ tabId: tab.id });
+// });

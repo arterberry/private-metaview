@@ -1,4 +1,4 @@
-// player_loader.js
+// js/player_loader.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const video = document.getElementById('hlsVideoPlayer');
@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
             manifestLoadingMaxRetry: 4
         });
 
+        window.hlsPlayerInstance = hls; // globalized instance for access
+
         hls.loadSource(hlsUrl);
         hls.attachMedia(video);
 
@@ -46,6 +48,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Broadcast HLS instance for manifest.js to hook into
         document.dispatchEvent(new CustomEvent('hlsLoaded', { detail: { hls } }));
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        
+        window.hlsPlayerInstance = null; // no HLS.js instance
+
         // Safari / native fallback
         video.src = hlsUrl;
         video.addEventListener('loadedmetadata', () => {
@@ -55,6 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     } else {
+        window.hlsPlayerInstance = null; // no HLS.js instance
         console.error('[player_loader] HLS not supported in this browser');
     }
 });
