@@ -779,3 +779,49 @@ style.textContent = `
  #metadataList .segment-item.selected .segment-badge { border-color: white; } /* Adjust selected badge border */
 `;
 document.head.appendChild(style);
+
+// ---- Exposed Logging Function ----
+// Allows other modules (like player_loader) to add simple log entries to the metadata list
+function addPlayerLogEntry(text, isError = false) {
+    const metadataList = document.getElementById('metadataList'); // Get reference directly
+    if (!metadataList) return;
+
+    const el = document.createElement('div');
+    el.className = 'segment-item segment-log-entry'; // Add a specific class for styling if needed
+
+    // Basic text content, handle newlines simply
+    el.style.whiteSpace = 'pre-wrap'; // Ensure newlines are rendered
+    el.textContent = text;
+
+    // Timestamp
+    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    const timeSpan = document.createElement('span');
+    timeSpan.className = 'segment-timestamp';
+    timeSpan.textContent = `[${timestamp}]`;
+    el.prepend(timeSpan); // Add timestamp at the beginning
+
+    if (isError) {
+        el.style.color = "#ff8c8c"; // Lighter red for dark background
+        // el.style.fontWeight = "bold"; // Optional bolding
+    } else {
+         el.style.color = "#bdbdbd"; // Dim color for regular logs
+    }
+
+    // Insert log entry at the top
+    metadataList.insertBefore(el, metadataList.firstChild);
+
+    // Optional: Limit number of log entries? (More complex)
+}
+// Make it globally accessible
+window.addPlayerLogEntry = addPlayerLogEntry;
+
+console.log('[manifest_ui] Player log function exposed.');
+
+// Add minimal CSS for log entries if needed (optional)
+const logStyle = document.createElement('style');
+logStyle.textContent = `
+ .segment-log-entry { padding: 3px 5px 3px 10px; border-bottom: 1px dashed #444; font-size: 11px; cursor: default; }
+ .segment-log-entry:hover { background-color: initial; } /* Disable hover */
+ .segment-log-entry .segment-timestamp { width: auto; text-align: left; margin-right: 8px; color: #888; }
+`;
+document.head.appendChild(logStyle);
