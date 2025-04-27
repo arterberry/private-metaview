@@ -1,4 +1,5 @@
-// js/manifest_ui.js
+// js/ui/manifest_ui.js
+
 console.log('[manifest_ui] Loading...');
 
 // Cache DOM elements
@@ -141,7 +142,7 @@ function setupUIHandlers() {
                          selectSegment(segmentObject, targetElement);
                     } else {
                          // Fallback if segment object not found (e.g., added by hls-listener or state issue)
-                         console.warn(`[manifest_ui] Segment object not found in parser state for URL: ${segmentUrl}. Using minimal info.`);
+                         console.log(`[manifest_ui] Segment object not found in parser state (expected for live fragments/other sources) for URL: ${segmentUrl}. Using minimal info from DOM.`);
                          selectSegment({ id: segmentId, url: segmentUrl, type: segmentType || 'segment' }, targetElement);
                     }
                 } else {
@@ -944,7 +945,7 @@ document.head.appendChild(style);
 //     // Optional: Limit number of log entries? (More complex)
 // }
 // Make it globally accessible
-window.addPlayerLogEntry = addPlayerLogEntry;
+// window.addPlayerLogEntry = addPlayerLogEntry;
 
 console.log('[manifest_ui] Player log function exposed.');
 

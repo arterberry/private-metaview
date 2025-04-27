@@ -14,6 +14,5 @@ find . -type f \( -name "*.js" -o -name "*.html" -o -name "*.css" -o -name "*.pn
 cd ..
 
 cp LICENSE dist/
-cp -R images dist/
 
 echo "Build completed."

@@ -1,4 +1,5 @@
-// js/hls_parser.js
+// js/core/hls_parser.js
+
 console.log('[hls_parser] Loading...');
 
 // Global manifest state - managed by the parser

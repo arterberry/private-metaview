@@ -20,7 +20,7 @@
         "<all_urls>"
     ],
     "background": {
-        "service_worker": "js/background.js"
+        "service_worker": "js/extension/background.js"
     },
     "action": {
         "default_title": "Open VIDINFRA MetaPlayer Panel",
@@ -33,14 +33,14 @@
     "content_scripts": [
         {
             "matches": ["<all_urls>"],
-            "js": ["js/content.js"],
+            "js": ["js/extension/content.js"],
             "run_at": "document_start"
         }
     ],
     
     "web_accessible_resources": [
         {
-            "resources": ["js/hls.min.js", "player.html"],
+            "resources": ["js/lib/hls.min.js", "player.html"],
             "matches": ["<all_urls>"]
         }
     ],

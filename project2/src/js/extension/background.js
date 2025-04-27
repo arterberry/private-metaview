@@ -1,4 +1,4 @@
-// js/background.js
+// js/extension/background.js
 
 // Function to fetch the player.html content
 async function getPlayerHtml() {

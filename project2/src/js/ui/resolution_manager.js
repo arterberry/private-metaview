@@ -1,4 +1,4 @@
-// js/resolution_manager.js
+// js/ui/resolution_manager.js
 console.log('[resolution_manager] Initializing...');
 
 (function() {

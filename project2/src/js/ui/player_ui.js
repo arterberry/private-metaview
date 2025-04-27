@@ -1,4 +1,4 @@
-// js/player_ui.js
+// js/ui/player_ui.js
 
 console.log('Player UI script loading...');
 

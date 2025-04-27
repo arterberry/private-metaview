@@ -1,4 +1,4 @@
-// js/player_loader.js
+// js/core/player_loader.js
 
 document.addEventListener('DOMContentLoaded', () => {
     const video = document.getElementById('hlsVideoPlayer');
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (data.details === Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
                 console.warn('[player_loader] Buffer stalled error detected by main error handler.');
                 bufferingIndicator.style.display = 'block'; // Show indicator
-                if (window.addPlayerLogEntry) window.addPlayerLogEntry('Playback stalled (buffer empty)', true); // Log stall specifically
+                // if (window.addPlayerLogEntry) window.addPlayerLogEntry('Playback stalled (buffer empty)', true); // Log stall specifically
                 // Don't necessarily treat buffer stall as a general error message below unless needed
             }
             // --- End Buffering Check ---
@@ -110,13 +110,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Log general error unless it was just a buffer stall (which we already logged)
             if (data.details !== Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
-                if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true); // Log as error
+                // if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true); // Log as error
             }
 
             // Fatal Error Handling
             if (data.fatal) {
                 console.error("HLS Fatal Error occurred.");
-                if (window.addPlayerLogEntry) window.addPlayerLogEntry(`FATAL ERROR: ${data.details}`, true);
+                // if (window.addPlayerLogEntry) window.addPlayerLogEntry(`FATAL ERROR: ${data.details}`, true);
                 // Optional: Add recovery logic here if needed
                 switch (data.type) {
                     case Hls.ErrorTypes.NETWORK_ERROR:
@@ -206,7 +206,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // if (window.addPlayerLogEntry) window.addPlayerLogEntry('Manifest parsed, starting playback.');
             video.play().catch(err => {
                 console.warn('[player_loader] Autoplay failed:', err.message);
-                if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Autoplay failed: ${err.message}`, true);
+                // if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Autoplay failed: ${err.message}`, true);
                 // Show controls so user can play manually
                 video.controls = true;
             });
@@ -224,22 +224,22 @@ document.addEventListener('DOMContentLoaded', () => {
         video.src = hlsUrl;
         video.addEventListener('loadedmetadata', () => {
             console.log('[player_loader] Native HLS loaded, starting playback');
-            if (window.addPlayerLogEntry) window.addPlayerLogEntry('Native HLS playback started.');
+            // if (window.addPlayerLogEntry) window.addPlayerLogEntry('Native HLS playback started.');
             video.play().catch(err => {
                 console.warn('[player_loader] Native autoplay error:', err);
-                if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Native autoplay failed: ${err.message}`, true);
+                // if (window.addPlayerLogEntry) window.addPlayerLogEntry(`Native autoplay failed: ${err.message}`, true);
             });
         });
         // Add basic error logging for native playback
         video.addEventListener('error', (e) => {
             console.error('[player_loader] Native video error:', e);
             const error = video.error;
-            if (window.addPlayerLogEntry && error) window.addPlayerLogEntry(`Native Player Error: Code ${error.code}, ${error.message}`, true);
+            // if (window.addPlayerLogEntry && error) window.addPlayerLogEntry(`Native Player Error: Code ${error.code}, ${error.message}`, true);
         });
     } else {
         window.hlsPlayerInstance = null; // no HLS.js instance
         console.error('[player_loader] HLS not supported in this browser');
-        if (window.addPlayerLogEntry) window.addPlayerLogEntry('HLS playback not supported in this browser.', true);
+        // if (window.addPlayerLogEntry) window.addPlayerLogEntry('HLS playback not supported in this browser.', true);
     }
 });
 

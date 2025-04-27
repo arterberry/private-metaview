@@ -1,4 +1,4 @@
-// js/content.js
+// js/extension/content.js
 
 // Function to detect if the current URL is an HLS stream (.m3u8)
 function isHlsUrl(url) {
