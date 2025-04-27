@@ -162,11 +162,16 @@ video {
 }
 
 #metadataList div:hover {
-    background-color: #222;
+    /* background-color: #222; */
+    background-color: #ffffff; /* White background on hover */
+    color: #000000; /* Black text on hover */
 }
 
 #metadataList div.selected {
-    background-color: #1a3c5f;
+    /* background-color: #1a3c5f; */
+    background-color: #bff4bf; /* Light green background for selected */
+    color: #000000; /* Black text for contrast */
+    font-weight: bold;
 }
 
 /* UPDATED HORIZONTAL RESIZE HANDLE */

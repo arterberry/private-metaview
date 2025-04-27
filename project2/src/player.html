@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="css/player.css">
     <link rel="stylesheet" href="css/side_panel.css">
     <link rel="stylesheet" href="css/resolution_manager.css">
+    <link rel="stylesheet" href="css/cache_manager.css">
 </head>
 
 <body>
@@ -86,19 +87,20 @@
                             <div id="resolutionList" class="resolution-container"></div>
                         </div>
 
-                        <div class="cache-metrics-section">
+                        <div class="cache-metrics-section"> 
                             <div class="cache-metrics-label">Cache Hit Ratio Performance:</div>
-                            <div class="cache-graph-container">
-                                <canvas id="cacheHitMissGraph" width="260" height="100"></canvas>
+                            <div class="cache-graph-container" id="cacheGraphContainer"> <!-- Add ID -->
+                                <canvas id="cacheHitMissGraph" width="360" height="125"></canvas> 
+                                <!-- Labels will be added dynamically or via CSS -->
                                 <div class="cache-stats">
-                                    <span id="hitRatio">Hit Ratio: 0</span>
-                                    <span id="segmentCount">Segments: 0</span>
+                                    <span id="hitRatio">Hit Ratio: --%</span> <!-- Default text -->
+                                    <span id="segmentCount">Segments: 0</span> <!-- Default text -->
                                 </div>
                             </div>
                         </div>
 
                         <div class="cache-ttl-section">
-                            <div class="cache-ttl-label">Cache TTL:</div>
+                            <div class="cache-metrics-label">Cache TTL:</div>
                             <div id="cacheTtlDisplay" class="cache-ttl-container">No TTL information available</div>
                         </div>
 
@@ -143,6 +145,7 @@
     <script defer src="js/core/hls_parser.js"></script>
     <script defer src="js/ui/player_ui.js"></script>
     <script defer src="js/core/player_loader.js"></script>
+    <script defer src="js/ui/cache_manager.js"></script> 
     <script defer src="js/ui/resolution_manager.js"></script>
     <script defer src="js/ui/manifest_ui.js"></script>
     <script defer src="js/ui/segment_tags.js"></script>

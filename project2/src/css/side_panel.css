@@ -215,6 +215,7 @@
     flex-wrap: wrap;
     justify-content: flex-end;
     max-width: 60%;
+    text-align: right;
     /* Match the width of ttl-value */
 }
 
