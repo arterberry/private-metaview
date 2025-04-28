@@ -221,7 +221,7 @@
 
 /* SCTE-35 / Ad Tracking Section */
 .scte-section {
-    margin-top: 15px;
+    margin-top: 45px;
     display: block;
     width: 100%;
 }

@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/side_panel.css">
     <link rel="stylesheet" href="css/resolution_manager.css">
     <link rel="stylesheet" href="css/cache_manager.css">
+    <link rel="stylesheet" href="css/scte_manager.css">
 </head>
 
 <body>
@@ -87,10 +88,10 @@
                             <div id="resolutionList" class="resolution-container"></div>
                         </div>
 
-                        <div class="cache-metrics-section"> 
+                        <div class="cache-metrics-section">
                             <div class="cache-metrics-label">Cache Hit Ratio Performance:</div>
                             <div class="cache-graph-container" id="cacheGraphContainer"> <!-- Add ID -->
-                                <canvas id="cacheHitMissGraph" width="360" height="125"></canvas> 
+                                <canvas id="cacheHitMissGraph" width="360" height="125"></canvas>
                                 <!-- Labels will be added dynamically or via CSS -->
                                 <div class="cache-stats">
                                     <span id="hitRatio">Hit Ratio: --%</span> <!-- Default text -->
@@ -104,25 +105,34 @@
                             <div id="cacheTtlDisplay" class="cache-ttl-container">No TTL information available</div>
                         </div>
 
+                        <!-- SCTE Section -->
                         <div class="scte-section">
                             <div class="scte-label">SCTE-35 / Ad Tracking:</div>
-                            <div id="scteDisplay" class="scte-container">No SCTE-35 markers detected</div>
-                            <div class="ad-graph-container">
-                                <canvas id="adRatioGraph" width="260" height="60"></canvas>
-                                <div class="ad-stats">
-                                    <span id="adRatio">Ad Ratio: 0%</span>
-                                    <span id="adCount">Ads: 0</span>
-                                </div>
+                            <!-- Summary Display Area -->
+                            <div id="scteDisplay" class="scte-container">
+                                No SCTE-35 markers detected
                             </div>
-
-                            <div class="scte-detail-section" id="scteDetailSection" style="margin-top: 10px;">
-                                <div class="scte-detail-label">SCTE-35 Signal Details:</div>
+                            <!-- Detail Display Area (Initially Hidden) -->
+                            <div class="scte-detail-section" id="scteDetailSection">
+                                <div class="scte-detail-label" style="margin-top: 8px;">SCTE-35 Signal Details:</div>
                                 <div id="scteDetailContainer" class="scte-detail-container">
                                     <div class="scte-detail-empty">No SCTE-35 signals decoded yet</div>
                                 </div>
+                                <!-- Timeline -->
                                 <div class="scte-timeline" id="scteTimeline"></div>
                             </div>
+                            <!-- Optional Ad Ratio Graph -->
+                            <!-- <div class="ad-graph-container" style="margin-top: 10px;">
+                                <canvas id="adRatioGraph" width="360" height="30"></canvas>
+                                <div class="ad-stats">
+                                    <span id="adRatio">Ad Ratio: --%</span>
+                                    <span id="adCount">Ads: 0</span>
+                                </div>
+                                
+                            </div> -->
+                            
                         </div>
+                        <!-- End SCTE Section -->
                     </div>
 
                     <!-- QoE Tab -->
@@ -139,16 +149,16 @@
             <!-- END: Extended Metrics UI -->
         </div>
     </div>
-
-    <!-- Load HLS core and live listener early -->
+    <!-- Load Scripts -->
     <script defer src="js/lib/hls.min.js"></script>
     <script defer src="js/core/hls_parser.js"></script>
     <script defer src="js/ui/player_ui.js"></script>
     <script defer src="js/core/player_loader.js"></script>
-    <script defer src="js/ui/cache_manager.js"></script> 
-    <script defer src="js/ui/resolution_manager.js"></script>
-    <script defer src="js/ui/manifest_ui.js"></script>
+    <script defer src="js/features/scte_manager.js"></script>
+    <script defer src="js/ui/cache_manager.js"></script>
+    <script defer src="js/ui/resolution_manager.js"></script>    
     <script defer src="js/ui/segment_tags.js"></script>
+    <script defer src="js/ui/manifest_ui.js"></script>
 
 </body>
 

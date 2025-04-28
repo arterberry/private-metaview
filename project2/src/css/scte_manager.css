@@ -1,0 +1,172 @@
+/* css/scte_manager.css */
+
+/* --- Main SCTE Section --- */
+.scte-section {
+    margin-top: 15px;
+    display: block;
+    width: 100%;
+    color: #e0e0e0; /* Text color */
+}
+
+.scte-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+/* Container for summary (#scteDisplay) */
+.scte-container {
+    border: 1px solid #666; /* Darker border */
+    background-color: #2e2e2e; /* Dark background */
+    padding: 10px;
+    font-size: 11px;
+    color: #cccccc; /* Lighter text */
+    min-height: 15px;
+    border-radius: 3px;
+    margin-bottom: 5px; /* Space before details */
+}
+
+/* For info rows in summary */
+.scte-info {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    align-items: flex-start;
+    line-height: 1.4;
+}
+
+.scte-value {
+    font-family: monospace;
+    background-color: #444; /* Darker value bg */
+    border-radius: 3px;
+    padding: 1px 4px;
+    font-size: 11px;
+    font-weight: bold;
+    color: #ADD8E6; /* Light blue value */
+    text-align: right;
+    max-width: 65%;
+    white-space: normal;
+    word-break: break-word;
+}
+
+/* --- SCTE Detail Section --- */
+/* .scte-detail-section {
+    /* Controlled by JS now, no specific styles needed here unless overriding */
+/* }  */
+
+.scte-detail-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+/* Container for the detailed list */
+.scte-detail-container {
+    border: 1px solid #666;
+    background-color: #2e2e2e;
+    padding: 10px;
+    font-size: 11px;
+    color: #cccccc;
+    max-height: 250px; /* Limit height and scroll */
+    overflow-y: auto;
+    border-radius: 3px;
+    display: none; /* Initially hidden, toggled by JS */
+}
+
+.scte-detail-empty {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Individual Signal Styling */
+.scte-signal {
+    padding: 5px;
+    margin-bottom: 8px;
+    border-left: 3px solid #888; /* Default border */
+    background-color: #3a3a3a; /* Slightly lighter item background */
+    border-radius: 2px;
+}
+
+.scte-signal.ad-start {
+    border-left-color: #90EE90; /* Light green */
+}
+
+.scte-signal.ad-end {
+    border-left-color: #FF8C8C; /* Light red */
+}
+
+.scte-signal-header {
+    font-weight: bold;
+    margin-bottom: 3px;
+    font-size: 11px; /* Slightly smaller */
+    color: #ffffff; /* White header text */
+}
+
+.scte-signal-details {
+    font-size: 10px;
+    font-family: monospace;
+    margin-top: 3px;
+    color: #bbbbbb; /* Dimmer details text */
+    word-break: break-all; /* Break long hex strings */
+}
+
+.scte-signal-source {
+    font-size: 9px;
+    color: #888;
+    margin-top: 4px;
+    font-style: italic;
+}
+
+/* --- SCTE Timeline --- */
+.scte-timeline {
+    margin-top: 8px;
+    height: 10px; /* Make timeline thinner */
+    background-color: #555; /* Darker timeline background */
+    position: relative;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid #777;
+}
+
+.scte-marker-point {
+    position: absolute;
+    width: 3px; /* Make markers slightly wider */
+    height: 10px; /* Match timeline height */
+    background-color: #ccc; /* Default marker color */
+    top: 0;
+}
+
+.scte-marker-point.ad-start {
+    background-color: #90EE90; /* Light green */
+}
+
+.scte-marker-point.ad-end {
+    background-color: #FF8C8C; /* Light red */
+}
+
+
+/* --- Ad Ratio Graph (Optional - if kept) --- */
+.ad-graph-container {
+    margin-top: 5px;
+    border: 1px solid #666;
+    background-color: #2e2e2e;
+    padding: 5px;
+    position: relative;
+}
+
+#adRatioGraph {
+     display: block;
+     width: 100%;
+     height: 30px; /* Make ad ratio graph shorter */
+}
+
+.ad-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #cccccc;
+    margin-top: 5px;
+    padding: 0 5px;
+}

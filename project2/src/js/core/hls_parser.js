@@ -271,6 +271,7 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
     let currentKey = null; // Track current encryption key context
     let currentMap = null; // Track current EXT-X-MAP context
     let programDateTime = null; // Track Program Date Time
+    let nextSegmentHasDiscontinuity = false;
 
     for (const lineRaw of lines) {
         const line = lineRaw.trim();
@@ -327,12 +328,19 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
              if (currentSegment) currentSegment.programDateTime = programDateTime; // Apply to current segment if EXTINF came first
               currentSegment?.tags.push(line);
 
-        } else if (line.startsWith('#EXT-X-DISCONTINUITY')) {
-             discontinuitySequence++; // Increment discontinuity counter
-             if (currentSegment) {
-                 currentSegment.discontinuity = true;
-                 currentSegment.tags.push(line);
-             }
+        } else if (line === '#EXT-X-DISCONTINUITY')  {
+            console.log('[hls_parser] Found exact #EXT-X-DISCONTINUITY tag.');
+            discontinuitySequence++; // Increment discontinuity counter
+            if (currentSegment) {
+                currentSegment.discontinuity = true;
+                currentSegment.tags.push(line);
+                // ---> DISPATCH EVENT WHEN DISCONTINUITY TAG IS ASSOCIATED WITH A SEGMENT <---
+                // We might dispatch this slightly later when the segment URL is known,
+                // but attaching the flag here is correct. We'll dispatch when segment is pushed.
+            } else {
+                // If discontinuity appears before EXTINF, store it to apply to the *next* segment
+                nextSegmentHasDiscontinuity = true;
+            }
              // Reset PDT context after discontinuity? (Check HLS spec - usually yes)
              // programDateTime = null;
 
@@ -351,22 +359,38 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
             console.log('[hls_parser] Reached ENDLIST.');
             dispatchStatusUpdate("VOD stream finished loading.");
 
-        } else if (line.startsWith('#') && currentSegment) {
-             // Store any other unrecognized tags associated with the segment
-             currentSegment.tags.push(line);
-
         } else if (currentSegment && !line.startsWith('#')) {
             // This line is the segment URI
             currentSegment.url = resolveUrl(line, baseUrl);
-            // Generate a unique ID for the segment combining playlist and sequence
-            currentSegment.id = `${playlistId}_seq${currentSegment.sequence}`;
+            currentSegment.id = `${playlistId}_seq${currentSegment.sequence}`; // Use sequence for ID
+
+            // ---> APPLY DISCONTINUITY FLAG IF IT PRECEDED EXTINF <---
+            if (nextSegmentHasDiscontinuity) {
+                 currentSegment.discontinuity = true;
+                 // Optionally add the tag line itself if needed: currentSegment.tags.push('#EXT-X-DISCONTINUITY');
+                 nextSegmentHasDiscontinuity = false; // Reset flag
+            }
+            // ---> END APPLY FLAG <---
+
 
             // Add the fully formed segment
             newSegments.push(currentSegment);
-            dispatchSegmentAdded(currentSegment); // Send to UI
+            dispatchSegmentAdded(currentSegment); // Send to UI (manifest_ui listens to this)
 
-            mediaSequence++; // Increment sequence number for the *next* segment
-            currentSegment = null; // Reset for the next segment block
+            // ---> DISPATCH DISCONTINUITY EVENT IF SEGMENT HAS FLAG <---
+            if (currentSegment.discontinuity) {
+                 console.log(`[hls_parser] Dispatching discontinuity for segment: ${currentSegment.id}`);
+                 document.dispatchEvent(new CustomEvent('hlsDiscontinuityDetected', {
+                      detail: {
+                           segment: currentSegment // Pass the whole segment object
+                      }
+                 }));
+            }
+            // ---> END DISPATCH <---
+
+            mediaSequence++;
+            currentSegment = null;
+            // nextSegmentHasDiscontinuity = false; // Already reset above
         }
     }
 
