@@ -277,6 +277,15 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
         const line = lineRaw.trim();
         if (!line) continue;
 
+        // Add this logging for SCTE-related lines
+    if (line.includes('SCTE') || line.includes('CUE')) {
+        console.log('[hls_parser] Potential SCTE line detected:', line);
+    }
+
+        if (window.SCTEDispatcher) {
+            window.SCTEDispatcher.processTag(line);
+        } // Process SCTE tags if dispatcher is available 
+
         if (line.startsWith('#EXTINF:')) {
             const durationMatch = line.match(/#EXTINF:([\d.]+)/);
             const titleMatch = line.split(',')[1];

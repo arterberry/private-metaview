@@ -33,6 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSidePanelToggle(refs);
     setupTabSystem();
 
+    // Initialize SCTE Dispatcher if available
+    if (window.SCTEDispatcher) {
+        console.log('Initializing SCTE Dispatcher');
+        window.SCTEDispatcher.init();
+    }
+
     // === Final Validation ===
     setTimeout(() => enforcePointerEvents(refs), 500);
     console.log('Player UI initialization complete');

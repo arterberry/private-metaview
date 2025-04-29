@@ -107,16 +107,16 @@
 
                         <!-- SCTE Section -->
                         <div class="scte-section">
-                            <div class="scte-label">SCTE-35 / Ad Tracking:</div>
+                            <div class="scte-label">Detailed Path Tracking:</div>
                             <!-- Summary Display Area -->
                             <div id="scteDisplay" class="scte-container">
-                                No SCTE-35 markers detected
+                                No specific markers detected
                             </div>
                             <!-- Detail Display Area (Initially Hidden) -->
                             <div class="scte-detail-section" id="scteDetailSection">
-                                <div class="scte-detail-label" style="margin-top: 8px;">SCTE-35 Signal Details:</div>
+                                <div class="scte-detail-label" style="margin-top: 8px;">Heuristic Signal Details:</div>
                                 <div id="scteDetailContainer" class="scte-detail-container">
-                                    <div class="scte-detail-empty">No SCTE-35 signals decoded yet</div>
+                                    <div class="scte-detail-empty">No specific signals decoded yet</div>
                                 </div>
                                 <!-- Timeline -->
                                 <div class="scte-timeline" id="scteTimeline"></div>
@@ -155,6 +155,7 @@
     <script defer src="js/ui/player_ui.js"></script>
     <script defer src="js/core/player_loader.js"></script>
     <script defer src="js/features/scte_manager.js"></script>
+    <script defer src="js/features/scte_dispatch.js"></script>
     <script defer src="js/ui/cache_manager.js"></script>
     <script defer src="js/ui/resolution_manager.js"></script>    
     <script defer src="js/ui/segment_tags.js"></script>
