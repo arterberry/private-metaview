@@ -1,264 +1,168 @@
 /* css/scte_manager.css */
 
-/* --- Base Variables (Light Theme) --- */
-:root {
-    --scte-bg-main: #f0f0f0; /* Background for the area containing the SCTE info */
-    --scte-bg-container: #ffffff; /* Background for main containers */
-    --scte-bg-signal-base: #f9f9f9; /* Base background for individual signal items */
-    --scte-bg-signal-ad-start: #f8d7da; /* Background for parsed Ad Start */
-    --scte-bg-signal-ad-end: #cce5ff; /* Background for parsed Ad End */
-    --scte-bg-signal-ad-boundary: #e9f5ec; /* Background for heuristic Ad Boundary */
-    --scte-bg-signal-content-boundary: #fff8e1; /* Background for heuristic Content Boundary */
-    --scte-bg-signal-error: #fff3e0; /* Background for signals with errors */
-    --scte-bg-code: #eee; /* Background for code/value snippets */
-    --scte-bg-timeline: #e0e0e0; /* Background for the timeline bar */
-
-    --scte-text-primary: #333; /* Primary text color */
-    --scte-text-secondary: #555; /* Secondary text (details, URLs) */
-    --scte-text-muted: #777; /* Muted text (source info) */
-    --scte-text-label: #000; /* Label text */
-    --scte-text-link: #0056b3; /* Link/action text */
-    --scte-text-value: #004085; /* Text color for values in summary */
-    --scte-text-header: #111; /* Header text within signals */
-    --scte-text-empty: #888; /* Text for empty states */
-
-    --scte-border-color: #ccc; /* Standard border color */
-    --scte-border-color-darker: #bbb; /* Slightly darker border */
-    --scte-border-radius: 4px; /* Standard border radius */
-    --scte-border-width-signal: 4px; /* Width for the left border on signals */
-
-    --scte-color-ad-start: #dc3545; /* Red */
-    --scte-color-ad-end: #007bff; /* Blue */
-    --scte-color-ad-boundary: #28a745; /* Green */
-    --scte-color-content-boundary: #ffc107; /* Yellow/Amber */
-    --scte-color-error: #fd7e14; /* Orange */
-    --scte-color-default: #6c757d; /* Grey */
-
-    --scte-font-size-base: 12px;
-    --scte-font-size-small: 11px;
-    --scte-font-size-smaller: 10px;
-    --scte-font-family-mono: monospace;
-}
-
-/* --- General Section Layout --- */
+/* SCTE-35 Detection Section */
 .scte-section {
-    margin-top: 15px;
+    margin-top: 25px;
     display: block;
     width: 100%;
-    /* Use body color or specific background */
-    /* background-color: var(--scte-bg-main); */
 }
 
-/* --- Labels --- */
-.scte-label,
-.scte-detail-label { /* Combined */
+.scte-label {
     font-weight: bold;
     margin-bottom: 5px;
-    font-size: var(--scte-font-size-base);
-    color: var(--scte-text-label);
+    font-size: 12px;
+    color: #e0e0e0;
 }
 
-/* --- Base Container Styles --- */
-.scte-container,
-.scte-detail-container {
-    border: 1px solid var(--scte-border-color);
-    background-color: var(--scte-bg-container);
+.scte-container {    
+    background-color: #4E4E4E;
+    border-color: #4E4E4E;
     padding: 10px;
-    font-size: var(--scte-font-size-small);
-    color: var(--scte-text-primary);
-    border-radius: var(--scte-border-radius);
-    margin-bottom: 8px; /* Consistent margin */
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05); /* Subtle shadow */
+    font-size: 11px;
+    color: #ffffff;
+    position: relative;
 }
 
-/* --- Summary Container (#scteDisplay) --- */
-.scte-container {
-    min-height: 40px; /* Ensure some height even when empty */
-}
-
-.scte-info {
+.scte-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start; /* Align items to top */
-    margin-bottom: 5px;
-    line-height: 1.4;
+    margin-bottom: 8px;
 }
 
-.scte-value {
-    font-family: var(--scte-font-family-mono);
-    background-color: var(--scte-bg-code);
-    border-radius: 3px;
-    padding: 2px 5px;
-    font-size: var(--scte-font-size-small);
+.scte-status {
+    font-style: italic;
+    color: #cccccc;
+}
+
+.scte-status.scte-active {
+    color: #4CAF50;
     font-weight: bold;
-    color: var(--scte-text-value);
-    text-align: right;
-    max-width: 70%; /* Prevent value from taking too much space */
-    white-space: normal; /* Allow wrapping */
-    word-break: break-word; /* Break long words/values */
-    margin-left: 8px; /* Space between label and value */
+    font-style: normal;
 }
 
-/* --- Detail Container (#scteDetailContainer) --- */
-.scte-detail-container {
-    max-height: 250px; /* Limit height and enable scrolling */
+.scte-ad-time {
+    font-family: monospace;
+    color: #cccccc;
+}
+
+.scte-ad-time.active {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.scte-list {
+    max-height: 150px;
     overflow-y: auto;
-    /* display: none; /* Initially hidden, controlled by JS */
 }
 
-.scte-detail-empty {
-    color: var(--scte-text-empty);
+.scte-empty {
+    color: #999;
     font-style: italic;
     text-align: center;
-    padding: 15px 0;
+    padding: 10px 0;
 }
 
-/* --- Individual Signal Item Styling (.scte-signal) --- */
-.scte-signal {
-    border: 1px solid var(--scte-border-color);
-    margin-bottom: 8px;
-    padding: 8px;
-    border-radius: var(--scte-border-radius);
-    background-color: var(--scte-bg-signal-base);
-    font-size: var(--scte-font-size-small);
-    border-left-width: var(--scte-border-width-signal);
-    border-left-style: solid;
-    /* Default border color if no specific type matches */
-    border-left-color: var(--scte-color-default);
-}
-
-/* Specific Signal Types */
-.scte-signal.ad-boundary { /* Heuristic Ad Boundary */
-    border-left-color: var(--scte-color-ad-boundary);
-    background-color: var(--scte-bg-signal-ad-boundary);
-}
-.scte-signal.content-boundary { /* Heuristic Content Boundary */
-    border-left-color: var(--scte-color-content-boundary);
-    background-color: var(--scte-bg-signal-content-boundary);
-}
-.scte-signal.ad-start { /* Parsed Ad Start */
-    border-left-color: var(--scte-color-ad-start);
-    background-color: var(--scte-bg-signal-ad-start);
-}
-.scte-signal.ad-end { /* Parsed Ad End */
-    border-left-color: var(--scte-color-ad-end);
-    background-color: var(--scte-bg-signal-ad-end);
-}
-.scte-signal.signal-error { /* Signal with Parsing Error */
-    border-left-color: var(--scte-color-error);
-    background-color: var(--scte-bg-signal-error);
-}
-
-/* Signal Content Elements */
-.scte-signal-header {
-    font-weight: bold;
-    margin-bottom: 4px;
-    color: var(--scte-text-header);
-    font-size: inherit; /* Inherit base size from .scte-signal */
-}
-
-.scte-signal-details {
-    font-size: 0.9em; /* Slightly smaller than parent */
-    color: var(--scte-text-primary);
-    word-break: break-word; /* Break long content */
-    margin-bottom: 4px;
-    font-family: var(--scte-font-family-mono); /* Monospace often good for details */
-}
-.scte-signal-details.heuristic-url {
-    font-style: italic;
-    color: var(--scte-text-secondary);
-    font-family: inherit; /* Don't force mono on URL */
-}
-
-.scte-signal-source {
-    font-size: 0.85em; /* Smaller */
-    color: var(--scte-text-muted);
-    margin-top: 6px;
-    font-style: italic;
-}
-
-/* Collapsible Raw Data Section */
-.scte-signal-raw-details summary {
-    cursor: pointer;
-    font-size: 0.9em; /* Smaller */
-    color: var(--scte-text-link);
-    margin-top: 5px;
-    display: inline-block; /* Prevent full width */
-}
-.scte-signal-raw-details pre {
-    background-color: var(--scte-bg-code);
-    padding: 5px 8px;
+.scte-detection {
+    padding: 6px 8px;
+    margin-bottom: 6px;
     border-radius: 3px;
-    font-size: 0.85em; /* Smaller mono */
-    max-height: 200px;
-    overflow: auto;
-    white-space: pre-wrap; /* Wrap long lines */
-    word-break: break-all; /* Break long strings without spaces */
-    margin-top: 4px;
-    color: var(--scte-text-secondary);
-    border: 1px solid var(--scte-border-color);
+    background-color: #3d3d3d;
+    border-left: 3px solid #4CAF50; 
+    cursor: pointer;
+    transition: background-color 0.2s;
 }
 
-/* --- SCTE Timeline --- */
-.scte-timeline {
-    margin-top: 10px;
-    height: 8px; /* Thinner timeline */
-    background-color: var(--scte-bg-timeline);
-    position: relative;
-    border-radius: var(--scte-border-radius);
-    overflow: hidden;
-    border: 1px solid var(--scte-border-color-darker);
+.scte-detection:hover {
+    background-color: #555;
 }
 
-.scte-marker-point {
-    position: absolute;
-    width: 4px; /* Slightly thicker marker */
-    height: 100%; /* Fill timeline height */
-    background-color: var(--scte-color-default); /* Default marker */
-    top: 0;
-    box-shadow: 1px 0 2px rgba(0, 0, 0, 0.1); /* Subtle edge */
+.scte-detection:last-child {
+    margin-bottom: 0;
 }
 
-/* Specific Marker Colors */
-.scte-marker-point.ad-start {
-    background-color: var(--scte-color-ad-start);
-}
-.scte-marker-point.ad-end {
-    background-color: var(--scte-color-ad-end);
-}
-.scte-marker-point.ad-boundary {
-    background-color: var(--scte-color-ad-boundary);
-}
- .scte-marker-point.content-boundary {
-    background-color: var(--scte-color-content-boundary);
-}
-/* Add .signal-error marker if needed */
-/* .scte-marker-point.signal-error { background-color: var(--scte-color-error); } */
-
-
-/* --- Ad Ratio Graph (Optional) --- */
-.ad-graph-container {
-    margin-top: 10px;
-    border: 1px solid var(--scte-border-color);
-    background-color: var(--scte-bg-container);
-    padding: 8px;
-    position: relative;
-    border-radius: var(--scte-border-radius);
-}
-
-#adRatioGraph {
-     display: block;
-     width: 100%;
-     height: 30px;
-     background-color: var(--scte-bg-code); /* Use code background */
-     border-radius: 2px;
-}
-
-.ad-stats {
+.scte-detection-header {
     display: flex;
     justify-content: space-between;
-    font-size: var(--scte-font-size-small);
-    color: var(--scte-text-secondary);
-    margin-top: 5px;
-    padding: 0 5px;
+    margin-bottom: 3px;
+}
+
+.scte-detection-type {
+    font-weight: bold;
+}
+
+.scte-detection-time {
+    color: #bbb;
+    font-size: 10px;
+}
+
+.scte-detection-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+}
+
+.scte-detection-creative {
+    font-family: monospace;
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 1px 4px;
+    border-radius: 2px;
+    max-width: 70%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.scte-detection-duration {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 1px 4px;
+    border-radius: 2px;
+    font-family: monospace;
+}
+
+/* Added detailed information styling */
+.scte-detection-details {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dotted #666;
+    font-size: 10px;
+    display: none; /* Hidden by default */
+}
+
+.scte-detection.expanded .scte-detection-details {
+    display: block; /* Show when expanded */
+}
+
+.scte-detail-item {
+    margin-bottom: 4px;
+}
+
+.scte-detail-label {
+    font-weight: bold;
+    color: #aaa;
+    display: inline-block;
+    width: 80px;
+}
+
+.scte-detail-value {
+    font-family: monospace;
+    word-break: break-all;
+}
+
+.scte-detail-params {
+    margin-top: 2px;
+    margin-left: 10px;
+}
+
+.scte-param {
+    margin-bottom: 2px;
+}
+
+.scte-param-key {
+    color: #aaa;
+    font-weight: bold;
+    margin-right: 4px;
+}
+
+.scte-param-value {
+    font-family: monospace;
 }
