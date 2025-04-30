@@ -58,6 +58,14 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // Attach video + Hls.js listeners
     // -----------------------
     function hookVideoAndHls() {
+
+
+        document.addEventListener('cdnInfoDetected', e => {
+            detectCDN(e.detail.url, e.detail.headers);
+            updateQoEDisplay();
+        });
+  
+
         const video = document.getElementById('hlsVideoPlayer');
         const hls = window.hlsPlayerInstance;
 
@@ -176,20 +184,30 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // CDN detection
     // -----------------------
     function detectCDN(url, headers = {}) {
-        if (qoeData.cdnProvider !== 'Unknown') return;
-        let cdn = 'Unknown';
         const u = url.toLowerCase();
-        if (u.includes('cloudfront')) cdn = 'CloudFront';
-        else if (u.includes('akamai')) cdn = 'Akamai';
-        else if (u.includes('cloudflare')) cdn = 'Cloudflare';
-        else if (u.includes('fastly')) cdn = 'Fastly';
+        let cdn = 'Unknown';
+      
+        // URL‐based checks
+        if (u.includes('akamai')) cdn = 'Akamai';
         else if (u.includes('qwilt')) cdn = 'Qwilt';
-        if (headers['cf-cache-status']) cdn = 'Cloudflare';
-        if (cdn !== 'Unknown') {
-            qoeData.cdnProvider = cdn;
-            addEvent(`CDN: ${cdn}`);
+        else if (u.includes('cloudfront'))      cdn = 'CloudFront';
+        else if (u.includes('akamaiedge')  || u.includes('akadns'))      cdn = 'Akamai';
+        else if (u.includes('cloudflare')) cdn = 'Cloudflare';
+        else if (u.includes('fastly'))     cdn = 'Fastly';
+        else if (u.includes('jsdelivr'))   cdn = 'jsDelivr';
+        else if (u.includes('llnwd') || u.includes('limelight'))        cdn = 'Limelight';
+      
+        // header‐based overrides (higher confidence)
+        if (headers['cf-ray']        || headers['cf-cache-status']) cdn = 'Cloudflare';
+        if (headers['x-amz-cf-id']   || headers['x-amz-cf-pop'])     cdn = 'CloudFront';
+        if (headers['x-cdn-provider'] === 'akamai')                cdn = 'Akamai';
+        if (headers['x-served-by'] && headers['x-served-by'].includes('cache-')) cdn = 'Fastly';
+      
+        if (cdn !== 'Unknown' && qoeData.cdnProvider === 'Unknown') {
+          qoeData.cdnProvider = cdn;
+          addEvent(`CDN: ${cdn}`, 'cdn');
         }
-    }
+      }
 
     // -----------------------
     // QoE score calculation

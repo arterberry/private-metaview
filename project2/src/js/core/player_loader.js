@@ -15,8 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('[player_loader] HLS URL:', hlsUrl);
 
-    if (Hls.isSupported()) {   
-        
+    if (Hls.isSupported()) {
+
         // Helper function to parse header string (can be inside or outside the class)
         function parseHeaders(headerStr) {
             const headers = {};
@@ -142,49 +142,60 @@ document.addEventListener('DOMContentLoaded', () => {
                     callbacks.onSuccess = function (response, stats, context, xhr) {
                         let cacheStatus = null;
                         let ttlInfo = null;
-                
+
                         if (context.type === 'level' || context.type === 'manifest' || context.type === 'audioTrack' || context.type === 'subtitleTrack') {
-                             console.log(`[HeaderCaptureLoader] Skipping header processing for type: ${context.type}`);
+                            console.log(`[HeaderCaptureLoader] Skipping header processing for type: ${context.type}`);
                         } else if (xhr && xhr.getAllResponseHeaders) {
-                             try {
-                                 const headerString = xhr.getAllResponseHeaders();
-                                 const headers = parseHeaders(headerString);
-                                 // ---> ADD DETAILED LOGGING <---
-                                 console.log(`[HeaderCaptureLoader] Headers received for ${getShortUrl(context.url)}:`, headers);
-                                 // ---> END LOGGING <---
-                
-                                 cacheStatus = detectCacheStatus(headers);
-                                 ttlInfo = extractTTLInfo(headers); // Extract TTL
-                
-                                 // ---> ADD TTL INFO LOGGING <---
-                                 if (ttlInfo && ttlInfo.hasDirectives) {
-                                      console.log("[HeaderCaptureLoader] TTL Info Extracted:", ttlInfo);
-                                 } else if(ttlInfo) {
-                                      console.log(`[HeaderCaptureLoader] No relevant TTL directives found in headers for ${getShortUrl(context.url)}.`);
-                                 }
-                                 // ---> END TTL LOGGING <---
-                
-                             } catch (e) {
-                                 console.error('[HeaderCaptureLoader] Error processing headers:', e);
-                             }
+                            try {
+                                const headerString = xhr.getAllResponseHeaders();
+                                
+                                const headers = parseHeaders(headerString);
+
+                                const parsedHeaders = parseHeaders(headerString);
+
+                                document.dispatchEvent(new CustomEvent('cdnInfoDetected', {
+                                    detail: {
+                                        url: xhr.responseURL || context.url,
+                                        headers: parsedHeaders
+                                    }
+                                }));
+
+                                // ---> ADD DETAILED LOGGING <---
+                                console.log(`[HeaderCaptureLoader] Headers received for ${getShortUrl(context.url)}:`, headers);
+                                // ---> END LOGGING <---
+
+                                cacheStatus = detectCacheStatus(headers);
+                                ttlInfo = extractTTLInfo(headers); // Extract TTL
+
+                                // ---> ADD TTL INFO LOGGING <---
+                                if (ttlInfo && ttlInfo.hasDirectives) {
+                                    console.log("[HeaderCaptureLoader] TTL Info Extracted:", ttlInfo);
+                                } else if (ttlInfo) {
+                                    console.log(`[HeaderCaptureLoader] No relevant TTL directives found in headers for ${getShortUrl(context.url)}.`);
+                                }
+                                // ---> END TTL LOGGING <---
+
+                            } catch (e) {
+                                console.error('[HeaderCaptureLoader] Error processing headers:', e);
+                            }
                         }
-                
+
                         // Dispatch cache status event if found
                         if (cacheStatus !== null) {
-                             // console.log(`[HeaderCaptureLoader] Dispatching cacheStatusDetected: ${cacheStatus}`); // Optional: uncomment for debug
+                            // console.log(`[HeaderCaptureLoader] Dispatching cacheStatusDetected: ${cacheStatus}`); // Optional: uncomment for debug
                             document.dispatchEvent(new CustomEvent('cacheStatusDetected', {
                                 detail: { isHit: cacheStatus }
                             }));
                         }
-                
+
                         // Dispatch TTL info event if relevant headers found
                         if (ttlInfo && ttlInfo.hasDirectives) {
-                             // console.log("[HeaderCaptureLoader] Dispatching ttlInfoDetected."); // Optional: uncomment for debug
-                             document.dispatchEvent(new CustomEvent('ttlInfoDetected', {
-                                 detail: { ttlInfo: ttlInfo }
-                             }));
+                            // console.log("[HeaderCaptureLoader] Dispatching ttlInfoDetected."); // Optional: uncomment for debug
+                            document.dispatchEvent(new CustomEvent('ttlInfoDetected', {
+                                detail: { ttlInfo: ttlInfo }
+                            }));
                         }
-                
+
                         // Call original callback
                         originalOnSuccess(response, stats, context, xhr);
                     };
@@ -310,17 +321,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 case Hls.ErrorDetails.BUFFER_STALLED_ERROR:
                     errorMessage = 'Playback stalled (buffer empty)'; // Specific message
                     console.warn('[player_loader] Buffer stalled error detected.');
-                    if(bufferingIndicator) bufferingIndicator.style.display = 'block'; // Show indicator directly
+                    if (bufferingIndicator) bufferingIndicator.style.display = 'block'; // Show indicator directly
                     // We'll handle logging below, avoid double logging
                     break;
 
-                 case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
-                 case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
-                 case Hls.ErrorDetails.LEVEL_LOAD_ERROR:
-                 case Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT:
-                      if (data.response) errorMessage += ` - Status: ${data.response.code} ${data.response.text}`;
-                      if (data.context && data.context.url) errorMessage += ` - URL: ${getShortUrl(data.context.url)}`;
-                      break;
+                case Hls.ErrorDetails.MANIFEST_LOAD_ERROR:
+                case Hls.ErrorDetails.MANIFEST_LOAD_TIMEOUT:
+                case Hls.ErrorDetails.LEVEL_LOAD_ERROR:
+                case Hls.ErrorDetails.LEVEL_LOAD_TIMEOUT:
+                    if (data.response) errorMessage += ` - Status: ${data.response.code} ${data.response.text}`;
+                    if (data.context && data.context.url) errorMessage += ` - URL: ${getShortUrl(data.context.url)}`;
+                    break;
 
                 // Add more cases here if needed based on Hls.ErrorDetails enum
                 default:
@@ -331,29 +342,29 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // --- Append Primary Error Object Details (if any) ---
             if (errorObj) {
-                 if (errorObj.message) {
-                     errorMessage += ` - Error: ${errorObj.message}`;
-                 } else {
-                     // Fallback string conversion for non-standard errors
-                     try {
-                          let errorDetailsStr = String(errorObj);
-                          if (errorDetailsStr !== '[object Object]') {
-                               errorMessage += ` - Details: ${errorDetailsStr}`;
-                          } else {
-                              errorMessage += ` - (Error object present)`;
-                          }
-                     } catch (e) {
-                          errorMessage += ` - (Could not stringify error object)`;
-                     }
-                 }
+                if (errorObj.message) {
+                    errorMessage += ` - Error: ${errorObj.message}`;
+                } else {
+                    // Fallback string conversion for non-standard errors
+                    try {
+                        let errorDetailsStr = String(errorObj);
+                        if (errorDetailsStr !== '[object Object]') {
+                            errorMessage += ` - Details: ${errorDetailsStr}`;
+                        } else {
+                            errorMessage += ` - (Error object present)`;
+                        }
+                    } catch (e) {
+                        errorMessage += ` - (Could not stringify error object)`;
+                    }
+                }
             }
 
             // --- Log to UI (only if not just a buffer stall, which has its own message) ---
             // Log all errors to UI for now, can refine later if too noisy
             // if (data.details !== Hls.ErrorDetails.BUFFER_STALLED_ERROR) {
-                 console.error(`[player_loader] Formatted Error: ${errorMessage}`); // Log formatted error to console too
-                 // REMOVED: We decided to remove UI logging for errors earlier
-                 // if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true);
+            console.error(`[player_loader] Formatted Error: ${errorMessage}`); // Log formatted error to console too
+            // REMOVED: We decided to remove UI logging for errors earlier
+            // if (window.addPlayerLogEntry) window.addPlayerLogEntry(errorMessage, true);
             // }
 
             // --- Fatal Error Handling ---
@@ -373,11 +384,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         console.log("[player_loader] Attempting recovery: hls.recoverMediaError()");
                         // Be cautious: recoverMediaError can sometimes trigger internal exceptions
                         try {
-                             hls.recoverMediaError();
+                            hls.recoverMediaError();
                         } catch (recoveryError) {
-                             console.error("[player_loader] Error during recoverMediaError():", recoveryError);
-                             console.log("[player_loader] Destroying HLS instance due to recovery failure.");
-                             hls.destroy(); // Destroy if recovery fails badly
+                            console.error("[player_loader] Error during recoverMediaError():", recoveryError);
+                            console.log("[player_loader] Destroying HLS instance due to recovery failure.");
+                            hls.destroy(); // Destroy if recovery fails badly
                         }
                         break;
                     default:
