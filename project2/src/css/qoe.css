@@ -1,0 +1,362 @@
+/* css/qoe.css */
+
+/* Score Section */
+.qoe-score-section {
+    margin-top: 15px;
+    margin-bottom: 15px;;
+    display: block;
+    width: 100%;
+}
+
+.qoe-score-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.qoe-score-container {
+    background: #4E4E4E;;    
+    padding: 10px;
+    border-radius: 4px;
+}
+
+.qoe-score-value {
+    font-size: 24px;
+    font-weight: bold;
+    text-align: center;
+    color: #ffffff;
+    margin-bottom: 5px;
+}
+
+.qoe-score-meter {
+    height: 8px;
+    background: #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.qoe-score-fill {
+    height: 100%;
+    transition: width .5s ease;
+    border-radius: 4px;
+}
+
+.qoe-score-fill.poor {
+    background: #e74c3c;
+}
+
+.qoe-score-fill.fair {
+    background: #f39c12;
+}
+
+.qoe-score-fill.good {
+    background: #2ecc71;
+}
+
+.qoe-score-fill.excellent {
+    background: #27ae60;
+}
+
+/* Metrics List */
+.qoe-metrics-section {
+    margin-bottom: 15px;
+}
+
+.qoe-metrics-container {
+    background: #4E4E4E;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 11px;
+}
+
+.qoe-metric-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.qoe-metric-name {
+    font-weight: bold;
+    color: #ffffff;
+}
+
+.qoe-metric-value {
+    font-family: monospace;
+    color: #b2d1f0;
+}
+
+/* Details Tabs */
+.qoe-details-tabs {
+    display: flex;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 10px;
+}
+
+.qoe-details-tab {
+    padding: 5px 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    color: #ffffff;
+    border-bottom: 2px solid transparent;
+}
+
+.qoe-details-tab:hover {
+    background: #373737;
+}
+
+.qoe-details-tab.active {
+    border-bottom-color: #4CAF50;
+    font-weight: bold;
+}
+
+/* Details Panels */
+.qoe-details-content {
+    background: #4E4E4E;    
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.qoe-details-panel {
+    display: none;
+}
+
+.qoe-details-panel.active {
+    display: block;
+}
+
+/* Audio/Subtitles Items */
+.audio-track-item,
+.subtitle-track-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.audio-track-item:last-child,
+.subtitle-track-item:last-child {
+    border-bottom: none;
+}
+
+/* Event History */
+.qoe-history-section {
+    margin-bottom: 15px;
+}
+
+.qoe-history-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.qoe-history-container {
+    background: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.qoe-history-event {
+    padding: 4px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.qoe-history-event:last-child {
+    border-bottom: none;
+}
+
+.qoe-history-timestamp {
+    color: #888;
+    margin-right: 5px;
+}
+
+.qoe-empty-history {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* Event colors */
+.event-startup {
+    color: #2ecc71;
+}
+
+.event-rebuffer {
+    color: #e74c3c;
+}
+
+.event-quality-change {
+    color: #3498db;
+}
+
+.event-error {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+/* ------- */
+
+/* QOE */
+/* QoE Tab Styles */
+.qoe-score-section {
+    margin-bottom: 15px;
+}
+
+.qoe-score-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.qoe-score-meter {
+    height: 8px;
+    background-color: #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.qoe-score-fill {
+    height: 100%;
+    background-color: #4CAF50;
+    transition: width 0.5s ease;
+    border-radius: 4px;
+}
+
+/* Changes color based on score */
+.qoe-score-fill.poor {
+    background-color: #e74c3c;
+}
+
+.qoe-score-fill.fair {
+    background-color: #f39c12;
+}
+
+.qoe-score-fill.good {
+    background-color: #2ecc71;
+}
+
+.qoe-score-fill.excellent {
+    background-color: #27ae60;
+}
+
+/* Metrics Section */
+.qoe-metrics-section {
+    margin-bottom: 15px;
+}
+
+.qoe-metrics-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.qoe-metric-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    line-height: 1.4;
+}
+
+
+/* QoE Details Section (Audio, Subtitles, Connection) */
+/* .qoe-details-section {
+    margin-bottom: 15px;
+} */
+
+/* .qoe-details-tab {
+    padding: 5px 10px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: center;
+    border-bottom: 2px solid transparent;
+} */
+
+.qoe-details-tab.active {
+    border-bottom: 2px solid #4CAF50;
+    font-weight: bold;
+}
+
+/* .qoe-details-content {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 11px;
+} */
+
+/* .qoe-details-panel {
+    display: none;
+} */
+
+.qoe-details-panel.active {
+    display: block;
+}
+
+/* Audio tracks and subtitles styles */
+.audio-track-item,
+.subtitle-track-item {
+    padding: 4px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.audio-track-item:last-child,
+.subtitle-track-item:last-child {
+    border-bottom: none;
+}
+
+/* QoE History Section */
+.qoe-history-section {
+    margin-bottom: 15px;
+}
+
+.qoe-history-label {
+    font-weight: bold;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.qoe-history-container {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    padding: 10px;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 11px;
+}
+
+.qoe-history-event {
+    padding: 4px 0;
+    border-bottom: 1px dotted #eee;
+}
+
+.qoe-history-event:last-child {
+    border-bottom: none;
+}
+
+.qoe-history-timestamp {
+    color: #888;
+    margin-right: 5px;
+}
+
+.qoe-empty-history {
+    color: #888;
+    font-style: italic;
+    text-align: center;
+    padding: 10px 0;
+}
+
+/* ------- */

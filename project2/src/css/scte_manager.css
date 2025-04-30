@@ -166,3 +166,10 @@
 .scte-param-value {
     font-family: monospace;
 }
+
+.scte-full-path {
+    color: #ccc;
+    margin-top: 4px;
+    font-size: 0.8em;
+}
+  
