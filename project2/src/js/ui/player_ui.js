@@ -164,30 +164,52 @@ function enforcePointerEvents({ metadataResizeHandle, resizeHandleVertical }) {
 }
 
 /** Tab click handlers */
+// function setupTabSystem() {
+//     const tabButtons = document.querySelectorAll('.tab-button');
+//     const tabPanes = document.querySelectorAll('.tab-pane');
+//     const metaButtons = document.querySelectorAll('.metadata_tab-buttonUpdate');
+//     const metaPanes = document.querySelectorAll('.metadata_tab-paneUpdate, .metadata_tab-paneBodyUpdate');
+
+//     tabButtons.forEach(btn => {
+//         btn.addEventListener('click', () => {
+//             const tabId = btn.getAttribute('data-tab');
+//             tabButtons.forEach(b => b.classList.remove('active'));
+//             tabPanes.forEach(p => p.classList.remove('active'));
+//             btn.classList.add('active');
+//             document.getElementById(`${tabId}-tab`).classList.add('active');
+//         });
+//     });
+
+//     metaButtons.forEach(btn => {
+//         btn.addEventListener('click', () => {
+//             const tabId = btn.getAttribute('data-tab');
+//             metaButtons.forEach(b => b.classList.remove('active'));
+//             metaPanes.forEach(p => p.classList.remove('active'));
+//             btn.classList.add('active');
+//             const selector = tabId === 'headers' ? '#headers-tabUpdate' : '#body-tabUpdate';
+//             document.querySelector(selector).classList.add('active');
+//         });
+//     });
+// }
+/** Tab click handlers (using delegation so dynamically‐added tabs also work) */
 function setupTabSystem() {
-    const tabButtons = document.querySelectorAll('.tab-button');
-    const tabPanes = document.querySelectorAll('.tab-pane');
-    const metaButtons = document.querySelectorAll('.metadata_tab-buttonUpdate');
-    const metaPanes = document.querySelectorAll('.metadata_tab-paneUpdate, .metadata_tab-paneBodyUpdate');
+    const tabNav = document.querySelector('.tab-nav');
+    if (!tabNav) return;
 
-    tabButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            tabButtons.forEach(b => b.classList.remove('active'));
-            tabPanes.forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            document.getElementById(`${tabId}-tab`).classList.add('active');
-        });
-    });
+    tabNav.addEventListener('click', e => {
+        const btn = e.target.closest('.tab-button');
+        if (!btn) return;                         // not a tab-button
+        const tabId = btn.dataset.tab;            // e.g. "inspect", "qoe", "ai", "config"
 
-    metaButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const tabId = btn.getAttribute('data-tab');
-            metaButtons.forEach(b => b.classList.remove('active'));
-            metaPanes.forEach(p => p.classList.remove('active'));
-            btn.classList.add('active');
-            const selector = tabId === 'headers' ? '#headers-tabUpdate' : '#body-tabUpdate';
-            document.querySelector(selector).classList.add('active');
-        });
+        // 1) Deactivate all buttons and panes
+        document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+
+        // 2) Activate the clicked button...
+        btn.classList.add('active');
+        // 3) ...and its corresponding pane
+        const pane = document.getElementById(`${tabId}-tab`);
+        if (pane) pane.classList.add('active');
     });
 }
+
