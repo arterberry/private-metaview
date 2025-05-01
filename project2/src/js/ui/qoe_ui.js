@@ -85,13 +85,14 @@ console.log('[qoe_ui] Initializing QoE UI…');
             qoeData.startTime = performance.now();
             video.addEventListener('loadstart', () => {
                 qoeData.loadStart = performance.now();
-                addEvent('Video loadstart');
+                // Tag as 'startup' so it picks up our green .event-startup style
+                addEvent('Video loadstart', 'startup');
                 updateQoEDisplay();
             });
             video.addEventListener('loadeddata', () => {
                 if (!qoeData.firstFrame) {
                     qoeData.firstFrame = performance.now();
-                    addEvent(`First frame after ${((qoeData.firstFrame - qoeData.startTime) / 1000).toFixed(2)}s`);
+                    addEvent(`First frame after ${((qoeData.firstFrame - qoeData.startTime) / 1000).toFixed(2)}s`, 'info');
                     updateQoEDisplay(); // Update display after first frame
                 }
                 // <<< MUXED AUDIO: Secondary Check - Native Video Tracks >>>
@@ -161,12 +162,12 @@ console.log('[qoe_ui] Initializing QoE UI…');
                             codec: lvl.audioCodec
                         });
                         qoeData.currentAudioTrack = 0; // Set the inferred track as active
-                        addEvent(`Inferred presence of muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
+                        addEvent(`Muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
                     }
                     // If we have an inferred track already, update its codec if it changed
                     else if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0 && qoeData.audioTracks[0].codec !== lvl.audioCodec) {
                         qoeData.audioTracks[0].codec = lvl.audioCodec;
-                        addEvent(`Inferred audio codec updated to ${lvl.audioCodec}`, 'audio');
+                        addEvent(`Audio codec updated to ${lvl.audioCodec}`, 'audio');
                     }
                 } else if (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0)) {
                     // If the new level has NO codec info AND we have no explicit tracks (only inferred or none)
@@ -231,11 +232,11 @@ console.log('[qoe_ui] Initializing QoE UI…');
                             if (qoeData.audioTracks.length === 0) {
                                 qoeData.audioTracks.push({ id: 0, name: 'Inferred Muxed Audio', language: 'und', default: true, codec: lvlInfo.audioCodec });
                                 qoeData.currentAudioTrack = 0;
-                                addEvent(`Inferred muxed audio via fragment (Codec: ${lvlInfo.audioCodec})`, 'audio');
+                                addEvent(`Muxed audio fragment (Codec: ${lvlInfo.audioCodec})`, 'audio');
                             } else {
                                 // Update existing inferred track's codec
                                 qoeData.audioTracks[0].codec = lvlInfo.audioCodec;
-                                addEvent(`Inferred audio codec updated via fragment to ${lvlInfo.audioCodec}`, 'audio');
+                                addEvent(`Updated audio codec fragment: ${lvlInfo.audioCodec}`, 'audio');
                             }
                         }
                     } else if (!lvlInfo.audioCodec && qoeData.currentAudioCodec !== '?' && (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0))) {
@@ -337,7 +338,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                                     codec: lvl.audioCodec
                                 }];
                                 qoeData.currentAudioTrack = 0; // Set the inferred track (ID 0) as active
-                                addEvent(`Inferred presence of muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
+                                addEvent(`Identified muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
                             } else if (qoeData.currentAudioCodec === '?') {
                                 // We have explicit tracks, but didn't get a codec initially, update the current one
                                 qoeData.currentAudioCodec = lvl.audioCodec;
@@ -388,9 +389,9 @@ console.log('[qoe_ui] Initializing QoE UI…');
                         qoeData.currentAudioTrack = activeTrack.id; // Store the ID
                         qoeData.currentAudioCodec = activeTrack.audioCodec || '?'; // Update codec
                         if (previouslyInferred) {
-                            addEvent(`Replaced inferred audio with ${qoeData.audioTracks.length} explicit track(s)`, 'audio');
+                            addEvent(`Replaced audio with ${qoeData.audioTracks.length} explicit track(s)`, 'audio');
                         } else {
-                            addEvent(`Updated explicit audio tracks list (${qoeData.audioTracks.length} found)`, 'audio');
+                            addEvent(`Updated audio tracks list (${qoeData.audioTracks.length} found)`, 'audio');
                         }
                         addEvent(`Audio → ${activeTrack.name || activeTrack.id} (ID: ${activeTrack.id}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
                     } else {
@@ -567,6 +568,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
         // Update only if CDN changed from Unknown or changed to a different known CDN
         if (cdn !== 'Unknown' && cdn !== currentCDN) {
             qoeData.cdnProvider = cdn;
+            // Tag as 'cdn' so it picks up our dark-blue .event-cdn style
             addEvent(`CDN detected: ${cdn}`, 'cdn');
             // No need to call updateQoEDisplay here, FRAG_LOADED already does
         } else if (cdn === 'Unknown' && currentCDN === 'Unknown') {

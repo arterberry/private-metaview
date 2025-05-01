@@ -333,7 +333,7 @@ console.log('[scte_manager] Initializing...');
 
         // If no detections yet, show a message
         if (state.scteDetections.length === 0) {
-            scteListElement.innerHTML = '<div class="scte-empty">No SCTE-35 signals detected yet</div>';
+            scteListElement.innerHTML = '<div class="scte-empty">No creatives detected yet</div>';
             return;
         }
 
