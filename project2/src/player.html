@@ -156,6 +156,10 @@
                                     <span id="currentBitrate" class="qoe-metric-value">N/A</span>
                                 </div>
                                 <div class="qoe-metric-row">
+                                    <span class="qoe-metric-name">Current Resolution:</span>
+                                    <span id="currentResolution" class="qoe-metric-value">N/A</span>
+                                </div>
+                                <div class="qoe-metric-row">
                                     <span class="qoe-metric-name">Playback Rate:</span>
                                     <span id="playbackRate" class="qoe-metric-value">1x</span>
                                 </div>
@@ -163,10 +167,12 @@
                         </div>
 
                         <div class="qoe-details-section">
+                            
                             <div class="qoe-details-tabs">
                                 <button class="qoe-details-tab active" data-qoe-tab="audio-tracks">Audio</button>
                                 <button class="qoe-details-tab" data-qoe-tab="subtitles">Subtitles</button>
                                 <button class="qoe-details-tab" data-qoe-tab="connection">Connection</button>
+                                <button class="qoe-details-tab" data-qoe-tab="qos">QoS</button>
                             </div>
 
                             <div class="qoe-details-content">
@@ -201,6 +207,28 @@
                                         </div>
                                     </div>
                                 </div>
+        
+                                <!--  QoS Panel -->
+                                <div id="qos-panel" class="qoe-details-panel">
+                                    <div id="qosContainer">
+                                        <div class="qoe-metric-row">
+                                            <span class="qoe-metric-name">Avg. Segment Throughput:</span>
+                                            <span id="availableBandwidth" class="qoe-metric-value">N/A</span>
+                                        </div>
+                                        <div class="qoe-metric-row">
+                                            <span class="qoe-metric-name">Avg. Segment Download Time:</span>
+                                            <span id="avgSegmentDownloadTime" class="qoe-metric-value">N/A</span>
+                                        </div>
+                                        <div class="qoe-metric-row">
+                                            <span class="qoe-metric-name">Segment Success Rate:</span>
+                                            <span id="segmentSuccessRate" class="qoe-metric-value">N/A</span>
+                                        </div>
+                                            <div class="qoe-metric-row">
+                                            <span class="qoe-metric-name">Avg. Playlist Latency:</span>
+                                            <span id="serverResponseTime" class="qoe-metric-value">N/A</span>
+                                        </div>                                        
+                                    </div>
+                                </div>                                                           
                             </div>
                         </div>
 

@@ -4,7 +4,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
 
 (function () {
 
-    console.log('QoE init')
+    console.log('[qoe_ui] IIFE running');
 
     // QoE state
     const qoeData = {
@@ -17,75 +17,136 @@ console.log('[qoe_ui] Initializing QoE UI…');
         rebufferingEvents: 0,
         rebufferingDurations: [],
         lastRebufferStart: null,
-        audioTracks: [], // Will hold explicit or inferred tracks
-        currentAudioTrack: null, // <<< ADDED: Store ID of active track (or 0 for inferred)
-        currentAudioCodec: '?', // <<< ADDED: Store codec of active track/level
+        audioTracks: [],
+        currentAudioTrack: null,
+        currentAudioCodec: '?',
         subtitleTracks: [],
         downloadSpeed: [],
         throughput: [],
         latency: [],
         cdnProvider: 'Unknown',
         playbackRate: 1,
-        eventHistory: []
+        eventHistory: [],
+        // QoS data
+        segmentDownloadTimes: [],
+        totalSegmentsRequested: 0,
+        totalSegmentsLoaded: 0,
+        totalSegmentsFailed: 0,
+        playlistLatencies: []
     };
 
-    // ... (rest of your code before hookVideoAndHls)
-
+    // To store fragment timing data temporarily
     let fragmentLoadingData = {};
 
+    // -----------------------
+    // DOM Ready Listener
+    // -----------------------
     document.addEventListener('DOMContentLoaded', () => {
+        console.log('[qoe_ui] DOMContentLoaded');
         setupDetailTabs();
-        updateQoEDisplay();
-    });
-
-    // player_loader has initialized the Hls instance
-    document.addEventListener('hlsLoaded', e => {
-        const hls = e.detail.hls;
-        if (!hls) {
-            console.warn('[qoe_ui] hlsLoaded fired but no Hls instance found');
-            return;
-        }
-        hookVideoAndHls(hls);
-        updateQoEDisplay();
+        updateQoEDisplay(); // Initial render with N/A values
     });
 
     // -----------------------
-    // Tab switching (Audio/Subs/Connection)
+    // HLS Player Loaded Listener (Crucial Fix Here)
+    // -----------------------
+    document.addEventListener('hlsLoaded', e => {
+        console.log('[qoe_ui] hlsLoaded event received');
+
+        // 1. Get the HLS instance directly from the event detail
+        const hls = e.detail.hls;
+
+        // 2. Check if the HLS instance exists
+        if (!hls) {
+            console.error('[qoe_ui] hlsLoaded event fired, but no HLS instance found in e.detail.hls. Cannot attach listeners.');
+            return; // Stop if no hls instance
+        }
+
+        // 3. If the HLS instance IS valid, call hookVideoAndHls and PASS the instance
+        console.log('[qoe_ui] HLS instance found, calling hookVideoAndHls...');
+        hookVideoAndHls(hls); // Pass the 'hls' instance as an argument
+
+        // 4. Optional: Initial UI update (usually not needed as events trigger updates)
+        // updateQoEDisplay();
+
+    }); // End of hlsLoaded event listener
+
+
+    // -----------------------
+    // Tab switching Logic
     // -----------------------
     function setupDetailTabs() {
-        const tabs = document.querySelector('.qoe-details-tabs');
-        if (!tabs) return;
-        tabs.addEventListener('click', e => {
+        // Select ONLY the tab container within the main qoe-tab pane
+        const tabsContainer = document.querySelector('#qoe-tab .qoe-details-tabs'); 
+        if (!tabsContainer) {
+            console.warn('[qoe_ui] Could not find QoE details tabs container.');
+            return;
+        }
+        // Find the content container relative to the tabs
+        const contentContainer = tabsContainer.nextElementSibling; 
+        if (!contentContainer || !contentContainer.classList.contains('qoe-details-content')) {
+            console.warn('[qoe_ui] Could not find QoE details content container.');
+            return;
+        }
+
+        tabsContainer.addEventListener('click', e => {
             const btn = e.target.closest('.qoe-details-tab');
-            if (!btn) return;
-            // deactivate
-            tabs.querySelectorAll('.qoe-details-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.qoe-details-panel').forEach(p => p.classList.remove('active'));
-            // activate
+            if (!btn || !btn.dataset.qoeTab) return; // Ensure it's a tab button with data attribute
+
+            // Deactivate all tabs within THIS container
+            tabsContainer.querySelectorAll('.qoe-details-tab').forEach(t => t.classList.remove('active'));
+
+            // Deactivate all panels within the corresponding content container
+            if (contentContainer) {
+                contentContainer.querySelectorAll('.qoe-details-panel').forEach(p => p.classList.remove('active'));
+            }
+
+            // Activate the clicked tab
             btn.classList.add('active');
-            const panel = document.getElementById(btn.dataset.qoeTab + '-panel');
-            if (panel) panel.classList.add('active');
+
+            // Activate the corresponding panel
+            const panelId = btn.dataset.qoeTab + '-panel';
+            const panel = contentContainer ? contentContainer.querySelector('#' + panelId) : null;
+            if (panel) {
+                panel.classList.add('active');
+            } else {
+                console.warn(`[qoe_ui] Panel with ID ${panelId} not found.`);
+            }
         });
     }
 
+
     // -----------------------
     // Attach video + Hls.js listeners
+    // Accepts the HLS instance as a parameter
     // -----------------------
-    function hookVideoAndHls() { // Removed hls parameter, using window.hlsPlayerInstance as original
+    function hookVideoAndHls(hls) {
+        console.log('[qoe_ui] hookVideoAndHls called with HLS instance:', hls);
 
+        // Listener for CDN info from other modules (if applicable)
         document.addEventListener('cdnInfoDetected', e => {
             detectCDN(e.detail.url, e.detail.headers);
             updateQoEDisplay();
         });
 
         const video = document.getElementById('hlsVideoPlayer');
-        const hls = window.hlsPlayerInstance; // Using global instance as per original code
 
+        // Helper function for playlist latency (defined within scope or globally)
+        const handlePlaylistLoadStats = (eventName, stats) => {
+            if (stats && stats.tfirst > 0 && stats.trequest > 0 && stats.tfirst >= stats.trequest) {
+                const latencyMs = stats.tfirst - stats.trequest;
+                qoeData.playlistLatencies.push(latencyMs);
+                // console.log(`[qoe_ui] Playlist Latency (${eventName}): ${latencyMs.toFixed(0)} ms`); // Debug log
+                updateQoEDisplay(); // Update display after getting new latency data
+            }
+        };
+
+        // --- Video Element Listeners ---
         if (video) {
+            console.log('[qoe_ui] Attaching video element listeners');
             qoeData.startTime = performance.now();
             video.addEventListener('loadstart', () => {
                 qoeData.loadStart = performance.now();
-                // Tag as 'startup' so it picks up our green .event-startup style
                 addEvent('Video loadstart', 'startup');
                 updateQoEDisplay();
             });
@@ -93,25 +154,13 @@ console.log('[qoe_ui] Initializing QoE UI…');
                 if (!qoeData.firstFrame) {
                     qoeData.firstFrame = performance.now();
                     addEvent(`First frame after ${((qoeData.firstFrame - qoeData.startTime) / 1000).toFixed(2)}s`, 'info');
-                    updateQoEDisplay(); // Update display after first frame
+                    updateQoEDisplay();
                 }
-                // <<< MUXED AUDIO: Secondary Check - Native Video Tracks >>>
-                // Check if the browser detected audio tracks natively, even if HLS events didn't fire.
+                // Native audio track check (keep for debugging/info)
                 if (video.audioTracks && video.audioTracks.length > 0 && qoeData.audioTracks.length === 0) {
-                    console.log('[qoe_ui] Native video element reports audio tracks:', video.audioTracks.length);
-                    // This confirms audio presence. We *could* try to infer a track here,
-                    // but let's rely on the HLS level info first for codec details.
                     addEvent(`Detected ${video.audioTracks.length} native audio track(s) (might be muxed)`);
-                    // Optionally: If still no track after MANIFEST_PARSED checks codec, infer here.
-                    // if (qoeData.audioTracks.length === 0 && qoeData.currentAudioCodec === '?') {
-                    //     qoeData.audioTracks.push({ id: 0, name: 'Inferred Muxed Audio (Native)', language: video.audioTracks[0]?.language || 'und', default: true, codec: '?' });
-                    //     qoeData.currentAudioTrack = 0;
-                    //     addEvent('Inferred muxed audio presence via native track');
-                    //     updateQoEDisplay(); // Update display if track inferred here
-                    // }
                 } else if (video.audioTracks && video.audioTracks.length === 0 && qoeData.audioTracks.length > 0 && qoeData.audioTracks[0]?.name?.includes('Inferred')) {
-                    // If native tracks disappear BUT we had an inferred track, maybe remove the inferred one? Or keep? Let's keep for now.
-                    console.log('[qoe_ui] Native video element reports NO audio tracks, but inferred track exists.');
+                     console.log('[qoe_ui] Native video element reports NO audio tracks, but inferred track exists.');
                 }
             });
             video.addEventListener('waiting', () => {
@@ -134,245 +183,142 @@ console.log('[qoe_ui] Initializing QoE UI…');
                 addEvent(`Rate changed to ${video.playbackRate}x`);
                 updateQoEDisplay();
             });
+        } else {
+             console.error("[qoe_ui] Video element #hlsVideoPlayer not found!");
         }
 
-        if (hls) {
-            // When the playback quality switches, bump the counter and record the new bitrate & resolution
+        // --- HLS.js Event Listeners ---
+        // Ensure HLS instance is valid before attaching listeners
+        if (hls && typeof hls.on === 'function') {
+            console.log('[qoe_ui] Attaching HLS.js event listeners');
+
             hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
                 qoeData.qualitySwitches++;
                 const lvl = hls.levels[data.level];
-                if (!lvl) return; // Guard against missing level
+                if (!lvl) return;
 
                 qoeData.currentBitrate = lvl.bitrate;
                 qoeData.currentResolution = `${lvl.width}x${lvl.height}`;
-
-                // <<< MUXED AUDIO: Check for audio codec on level switch >>>
                 let eventMsg = `Quality → ${qoeData.currentResolution}`;
-                const previousCodec = qoeData.currentAudioCodec;
-                if (lvl.audioCodec) {
-                    qoeData.currentAudioCodec = lvl.audioCodec;
-                    eventMsg += ` (Audio: ${lvl.audioCodec})`;
-                    // If no audio tracks were ever detected (not explicit, not inferred yet), infer one now.
-                    if (qoeData.audioTracks.length === 0) {
-                        qoeData.audioTracks.push({
-                            id: 0, // Use 0 as the ID for the single inferred track
-                            name: 'Inferred Muxed Audio',
-                            language: 'und',
-                            default: true,
-                            codec: lvl.audioCodec
-                        });
-                        qoeData.currentAudioTrack = 0; // Set the inferred track as active
-                        addEvent(`Muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
-                    }
-                    // If we have an inferred track already, update its codec if it changed
-                    else if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0 && qoeData.audioTracks[0].codec !== lvl.audioCodec) {
-                        qoeData.audioTracks[0].codec = lvl.audioCodec;
-                        addEvent(`Audio codec updated to ${lvl.audioCodec}`, 'audio');
-                    }
-                } else if (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0)) {
-                    // If the new level has NO codec info AND we have no explicit tracks (only inferred or none)
-                    // Update the codec to '?'
-                    qoeData.currentAudioCodec = '?';
-                    if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0) {
-                        qoeData.audioTracks[0].codec = '?'; // Update inferred track codec too
-                    }
-                    eventMsg += ` (No audio codec info)`;
-                }
-                // <<< END MUXED AUDIO Check >>>
 
+                // Handle audio codec info on level switch
+                if (lvl.audioCodec) {
+                    const newCodec = lvl.audioCodec;
+                    eventMsg += ` (Audio: ${newCodec})`;
+                    if (qoeData.audioTracks.length === 0) { // Infer if no tracks exist yet
+                         qoeData.audioTracks.push({ id: 0, name: 'Inferred Muxed Audio', language: 'und', default: true, codec: newCodec });
+                         qoeData.currentAudioTrack = 0;
+                         qoeData.currentAudioCodec = newCodec;
+                         addEvent(`Identified muxed audio (Codec: ${newCodec})`, 'audio');
+                    } else if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0 && qoeData.audioTracks[0].codec !== newCodec) { // Update inferred track codec
+                         qoeData.audioTracks[0].codec = newCodec;
+                         qoeData.currentAudioCodec = newCodec;
+                         addEvent(`Inferred audio codec updated to ${newCodec}`, 'audio');
+                    } else if (qoeData.currentAudioTrack !== null) { // Update codec of the currently active *explicit* track if it was unknown
+                        const activeTrack = qoeData.audioTracks.find(t => t.id === qoeData.currentAudioTrack);
+                        if (activeTrack && (!activeTrack.codec || activeTrack.codec === '?')) {
+                             activeTrack.codec = newCodec;
+                             qoeData.currentAudioCodec = newCodec; // Update global state too
+                             addEvent(`Active audio track codec updated to ${newCodec}`, 'audio');
+                        } else if (activeTrack && activeTrack.codec !== newCodec) {
+                             // Potentially log a mismatch if codec changes for an explicit track?
+                             // console.warn(`Codec mismatch on level switch for track ${activeTrack.id}: ${activeTrack.codec} vs ${newCodec}`);
+                             qoeData.currentAudioCodec = newCodec; // Assume level info is correct for current playback state
+                        } else {
+                             qoeData.currentAudioCodec = newCodec; // Update global state if no specific track match needed update
+                        }
+                    } else {
+                         qoeData.currentAudioCodec = newCodec; // Update global state
+                    }
+                } else { // Level has no audio codec info
+                     eventMsg += ` (No audio codec info)`;
+                     // Only reset to '?' if we currently have an inferred track or no track
+                     if (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0)) {
+                          if (qoeData.audioTracks.length === 1) qoeData.audioTracks[0].codec = '?';
+                          qoeData.currentAudioCodec = '?';
+                     }
+                }
                 addEvent(eventMsg, 'quality-change');
                 updateQoEDisplay();
             });
 
-            // Before each fragment load, note the start time & URL for later timing calculations
             hls.on(Hls.Events.FRAG_LOADING, (_, data) => {
+                if (!data || !data.frag) return;
                 fragmentLoadingData[data.frag.sn] = {
                     start: performance.now(),
                     url: data.frag.url
                 };
+                qoeData.totalSegmentsRequested++;
+                // console.log(`[qoe_ui] FRAG_LOADING: SN=${data.frag.sn}, Req=${qoeData.totalSegmentsRequested}`); // Debug log
+                updateQoEDisplay(); // Update success rate display immediately
             });
 
-            // After a fragment finishes loading, compute throughput, download speed, latency,
-            // capture the current ABR bitrate/resolution, detect the CDN, then update the UI
+            hls.on(Hls.Events.LEVEL_LOADED, (_, data) => {
+                if (data.stats) {
+                    handlePlaylistLoadStats('Level Playlist', data.stats);
+                }
+            });
+
             hls.on(Hls.Events.FRAG_LOADED, (_, data) => {
-                // console.log('[qoe_ui] FRAG_LOADED', data.frag.level); // Keep for debugging if needed
+                if (!data || !data.frag || !data.stats) return;
                 const info = fragmentLoadingData[data.frag.sn];
                 if (!info) return;
 
-                // 1) throughput / download speed
                 const loadMs = performance.now() - info.start;
                 const bytes = data.stats.total;
-                if (loadMs > 0) { // Avoid division by zero
+
+                qoeData.totalSegmentsLoaded++;
+                 // console.log(`[qoe_ui] FRAG_LOADED: SN=${data.frag.sn}, Loaded=${qoeData.totalSegmentsLoaded}, Time=${loadMs.toFixed(0)}ms`); // Debug log
+
+                if (loadMs > 0) {
+                    qoeData.segmentDownloadTimes.push(loadMs);
                     qoeData.throughput.push((bytes * 8) / (loadMs / 1000));
                     qoeData.downloadSpeed.push(bytes / (loadMs / 1000));
                 }
 
-                // 2) latency via ResourceTiming (first-byte time)
+                // Latency
                 const entries = performance.getEntriesByName(info.url);
                 if (entries.length) {
                     const e = entries[entries.length - 1];
-                    // Ensure timing values are valid before calculating latency
                     if (e.responseStart > 0 && e.requestStart > 0 && e.responseStart >= e.requestStart) {
                         qoeData.latency.push(e.responseStart - e.requestStart);
                     }
                 }
 
-                // 3) capture current ABR level's bitrate & resolution (redundant w/ LEVEL_SWITCHED but good fallback)
+                // Fallback bitrate/resolution/codec capture
                 const lvlInfo = hls.levels[data.frag.level];
                 if (lvlInfo) {
-                    qoeData.currentBitrate = lvlInfo.bitrate;
+                    qoeData.currentBitrate = lvlInfo.bitrate; // Update even if no level switch fired
                     qoeData.currentResolution = `${lvlInfo.width}x${lvlInfo.height}`;
-                    // <<< MUXED AUDIO: Fallback check for audio codec on fragment load >>>
-                    // Update codec only if it wasn't set or seems inconsistent. Primary source is LEVEL_SWITCHED/MANIFEST_PARSED.
-                    if (lvlInfo.audioCodec && qoeData.currentAudioCodec !== lvlInfo.audioCodec) {
-                        // Only update if we think we don't have explicit tracks or the inferred codec is wrong
-                        if (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0)) {
-                            qoeData.currentAudioCodec = lvlInfo.audioCodec;
-                            // Infer track if absolutely needed (should have been caught earlier)
-                            if (qoeData.audioTracks.length === 0) {
-                                qoeData.audioTracks.push({ id: 0, name: 'Inferred Muxed Audio', language: 'und', default: true, codec: lvlInfo.audioCodec });
-                                qoeData.currentAudioTrack = 0;
-                                addEvent(`Muxed audio fragment (Codec: ${lvlInfo.audioCodec})`, 'audio');
-                            } else {
-                                // Update existing inferred track's codec
-                                qoeData.audioTracks[0].codec = lvlInfo.audioCodec;
-                                addEvent(`Updated audio codec fragment: ${lvlInfo.audioCodec}`, 'audio');
-                            }
-                        }
-                    } else if (!lvlInfo.audioCodec && qoeData.currentAudioCodec !== '?' && (qoeData.audioTracks.length === 0 || (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0))) {
-                        // If fragment level lacks codec info, but we thought we had one (and it's inferred/none)
-                        qoeData.currentAudioCodec = '?';
-                        if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0) {
-                            qoeData.audioTracks[0].codec = '?';
-                        }
+                    // Simplified fallback codec update - only if current is unknown
+                    if (lvlInfo.audioCodec && qoeData.currentAudioCodec === '?') {
+                         qoeData.currentAudioCodec = lvlInfo.audioCodec;
+                         // If inferred track exists, update its codec too
+                         if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0) {
+                              qoeData.audioTracks[0].codec = lvlInfo.audioCodec;
+                         }
+                         addEvent(`Audio codec updated via fragment: ${lvlInfo.audioCodec}`, 'audio');
                     }
-                    // <<< END MUXED AUDIO Fallback >>>
                 }
 
-                // 4) existing CDN detection / cleanup / UI update
-                detectCDN(info.url, data.stats.headers); // Assuming data.stats.headers exists, otherwise might need adjustment
+                // CDN detection
+                detectCDN(info.url, data.stats.headers);
+
                 delete fragmentLoadingData[data.frag.sn];
-                updateQoEDisplay();
+                updateQoEDisplay(); // Crucial update after processing fragment
             });
 
-            // Once the manifest is parsed, pick up any audio/subtitle tracks and
-            // set the _initial_ bitrate/resolution
             hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-                console.log('[qoe_ui] MANIFEST_PARSED'); // Log when parsed
-                let explicitAudioTracksFound = false; // Flag
+                console.log('[qoe_ui] MANIFEST_PARSED');
+                let explicitAudioTracksFound = false;
 
-                // --- Handle Explicit Audio Tracks ---
+                if (data.stats) {
+                    handlePlaylistLoadStats('Manifest', data.stats);
+                }
+
+                // Process Audio Tracks
                 if (data.audioTracks && data.audioTracks.length > 0) {
                     explicitAudioTracksFound = true;
-                    qoeData.audioTracks = data.audioTracks.map(t => ({
-                        id: t.id, // Use ID provided by hls.js
-                        name: t.name || `Track ${t.id}`,
-                        language: t.lang || 'und', // Use 'und' for undetermined
-                        default: !!t.default,
-                        codec: t.audioCodec || '?' // Capture codec if provided
-                    }));
-                    addEvent(`Detected ${qoeData.audioTracks.length} explicit audio track(s)`, 'audio');
-
-                    // Find the default or first track to set as current initially
-                    let initialTrack = qoeData.audioTracks.find(t => t.default);
-                    if (!initialTrack && qoeData.audioTracks.length > 0) {
-                        initialTrack = qoeData.audioTracks[0]; // Fallback to the first track
-                    }
-                    if (initialTrack) {
-                        qoeData.currentAudioTrack = initialTrack.id; // Store the ID
-                        qoeData.currentAudioCodec = initialTrack.codec || '?'; // Store its codec
-                        addEvent(`Initial audio track set to: ${initialTrack.name} (ID: ${initialTrack.id}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
-                    } else {
-                        qoeData.currentAudioTrack = null;
-                        qoeData.currentAudioCodec = '?';
-                    }
-                } else {
-                    // No explicit tracks found in manifest data
-                    qoeData.audioTracks = [];
-                    qoeData.currentAudioTrack = null;
-                    qoeData.currentAudioCodec = '?'; // Reset codec for now
-                    addEvent(`No explicit audio tracks found in manifest`, 'audio');
-                }
-
-                // --- Handle Subtitles (Existing logic) ---
-                if (data.subtitles && data.subtitles.length > 0) {
-                    qoeData.subtitleTracks = data.subtitles.map(t => ({
-                        id: t.id, // Good to have subtitle ID too if available
-                        name: t.name || `Subtitle ${t.id}`,
-                        language: t.lang || 'und',
-                        default: !!t.default
-                    }));
-                    addEvent(`Detected ${qoeData.subtitleTracks.length} subtitle track(s)`);
-                } else {
-                    qoeData.subtitleTracks = [];
-                }
-
-                // --- Set Initial Bitrate/Resolution & Check for Muxed Audio ---
-                if (hls.levels.length > 0) {
-                    // Determine initial level index (use startLevel if set, otherwise currentLevel, fallback to 0)
-                    let initialLevelIndex = hls.startLevel;
-                    if (initialLevelIndex === -1 || initialLevelIndex >= hls.levels.length) {
-                        initialLevelIndex = hls.currentLevel; // currentLevel might be -1 initially too
-                    }
-                    if (initialLevelIndex === -1 || initialLevelIndex >= hls.levels.length) {
-                        initialLevelIndex = 0; // Safe fallback
-                    }
-
-                    const lvl = hls.levels[initialLevelIndex];
-                    if (lvl) { // Ensure level exists
-                        qoeData.currentBitrate = lvl.bitrate;
-                        qoeData.currentResolution = `${lvl.width}x${lvl.height}`;
-                        let qualityEventMsg = `Initial Quality → ${qoeData.currentResolution}`;
-
-                        // <<< MUXED AUDIO: Check initial level for audio codec >>>
-                        if (lvl.audioCodec) {
-                            qualityEventMsg += ` (Audio: ${lvl.audioCodec})`;
-                            // If NO explicit tracks were found earlier, infer a default muxed track now.
-                            if (!explicitAudioTracksFound) {
-                                qoeData.currentAudioCodec = lvl.audioCodec; // Set the codec
-                                qoeData.audioTracks = [{
-                                    id: 0, // Assign ID 0 for the single inferred track
-                                    name: 'Inferred Muxed Audio',
-                                    language: 'und',
-                                    default: true,
-                                    codec: lvl.audioCodec
-                                }];
-                                qoeData.currentAudioTrack = 0; // Set the inferred track (ID 0) as active
-                                addEvent(`Identified muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
-                            } else if (qoeData.currentAudioCodec === '?') {
-                                // We have explicit tracks, but didn't get a codec initially, update the current one
-                                qoeData.currentAudioCodec = lvl.audioCodec;
-                                const currentTrackObj = qoeData.audioTracks.find(t => t.id === qoeData.currentAudioTrack);
-                                if (currentTrackObj) currentTrackObj.codec = lvl.audioCodec; // Update codec in track object
-                                addEvent(`Updated initial audio track codec to ${lvl.audioCodec}`, 'audio');
-                            }
-                        } else {
-                            qualityEventMsg += ` (No audio codec info)`;
-                            // If no explicit tracks AND no codec info on level, ensure codec is '?'
-                            if (!explicitAudioTracksFound) {
-                                qoeData.currentAudioCodec = '?';
-                            }
-                        }
-                        // <<< END MUXED AUDIO Check >>>
-                        addEvent(qualityEventMsg, 'quality-change');
-
-                    } else {
-                        addEvent(`Initial quality level not found (Index: ${initialLevelIndex})`, 'error');
-                    }
-                } else {
-                    addEvent(`No quality levels found in manifest`, 'error');
-                }
-
-                updateQoEDisplay(); // Update UI after parsing manifest
-            });
-
-            // AUDIO TRACKS UPDATED (Handles cases where audio tracks load separately or change later)
-            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) => {
-                console.log('[qoe_ui] AUDIO_TRACKS_UPDATED fired');
-                const previouslyInferred = qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0;
-
-                if (data.audioTracks && data.audioTracks.length > 0) {
-                    // Replace current tracks (whether inferred or previous explicit) with the new list
                     qoeData.audioTracks = data.audioTracks.map(t => ({
                         id: t.id,
                         name: t.name || `Track ${t.id}`,
@@ -380,120 +326,250 @@ console.log('[qoe_ui] Initializing QoE UI…');
                         default: !!t.default,
                         codec: t.audioCodec || '?' // Capture codec
                     }));
+                    addEvent(`Detected ${qoeData.audioTracks.length} explicit audio track(s)`, 'audio');
 
-                    // Determine which track is now active (hls.audioTrack is the index in the *new* list)
-                    const currentTrackIndex = hls.audioTrack; // Index in data.audioTracks
-                    const activeTrack = data.audioTracks[currentTrackIndex];
-
-                    if (activeTrack) {
-                        qoeData.currentAudioTrack = activeTrack.id; // Store the ID
-                        qoeData.currentAudioCodec = activeTrack.audioCodec || '?'; // Update codec
-                        if (previouslyInferred) {
-                            addEvent(`Replaced audio with ${qoeData.audioTracks.length} explicit track(s)`, 'audio');
-                        } else {
-                            addEvent(`Updated audio tracks list (${qoeData.audioTracks.length} found)`, 'audio');
-                        }
-                        addEvent(`Audio → ${activeTrack.name || activeTrack.id} (ID: ${activeTrack.id}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
+                    let initialTrack = qoeData.audioTracks.find(t => t.default) || qoeData.audioTracks[0];
+                    if (initialTrack) {
+                        qoeData.currentAudioTrack = initialTrack.id;
+                        qoeData.currentAudioCodec = initialTrack.codec || '?';
+                        addEvent(`Initial audio: ${initialTrack.name} (ID: ${initialTrack.id}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
                     } else {
-                        // Should not happen if list is not empty, but handle defensively
-                        qoeData.currentAudioTrack = null;
-                        qoeData.currentAudioCodec = '?';
-                        addEvent(`Audio tracks updated, but couldn't identify active track (Index: ${currentTrackIndex})`, 'error');
+                         qoeData.currentAudioTrack = null;
+                         qoeData.currentAudioCodec = '?';
                     }
-
                 } else {
-                    // Event fired with an empty list. Clear only if we didn't have an inferred track.
-                    if (!previouslyInferred) {
-                        qoeData.audioTracks = [];
-                        qoeData.currentAudioTrack = null;
-                        qoeData.currentAudioCodec = '?';
-                        addEvent(`Explicit audio tracks list cleared`, 'audio');
-                    } else {
-                        addEvent(`AUDIO_TRACKS_UPDATED: Fired with empty list, keeping inferred track`, 'audio');
-                    }
+                    qoeData.audioTracks = []; // Clear any previous tracks if manifest has none
+                    qoeData.currentAudioTrack = null;
+                    qoeData.currentAudioCodec = '?';
+                    addEvent(`No explicit audio tracks found in manifest`, 'audio');
                 }
-                updateQoEDisplay();
+
+                // Process Subtitle Tracks
+                if (data.subtitles && data.subtitles.length > 0) {
+                     qoeData.subtitleTracks = data.subtitles.map(t => ({
+                          id: t.id, name: t.name || `Subtitle ${t.id}`, language: t.lang || 'und', default: !!t.default
+                     }));
+                     addEvent(`Detected ${qoeData.subtitleTracks.length} subtitle track(s)`);
+                } else {
+                     qoeData.subtitleTracks = [];
+                }
+
+                // Set Initial Quality & Infer Muxed Audio if needed
+                if (hls.levels.length > 0) {
+                    let initialLevelIndex = hls.startLevel !== -1 ? hls.startLevel : (hls.currentLevel !== -1 ? hls.currentLevel : 0);
+                    initialLevelIndex = Math.max(0, Math.min(initialLevelIndex, hls.levels.length - 1)); // Clamp index
+
+                    const lvl = hls.levels[initialLevelIndex];
+                    if (lvl) {
+                        qoeData.currentBitrate = lvl.bitrate;
+                        qoeData.currentResolution = `${lvl.width}x${lvl.height}`;
+                        let qualityEventMsg = `Initial Quality → ${qoeData.currentResolution}`;
+
+                        if (lvl.audioCodec) {
+                            qualityEventMsg += ` (Audio: ${lvl.audioCodec})`;
+                            if (!explicitAudioTracksFound) { // Infer only if no explicit tracks
+                                qoeData.currentAudioCodec = lvl.audioCodec;
+                                qoeData.audioTracks = [{ id: 0, name: 'Inferred Muxed Audio', language: 'und', default: true, codec: lvl.audioCodec }];
+                                qoeData.currentAudioTrack = 0;
+                                addEvent(`Identified muxed audio (Codec: ${lvl.audioCodec})`, 'audio');
+                            } else if (qoeData.currentAudioCodec === '?') { // Update current explicit track if codec was unknown
+                                qoeData.currentAudioCodec = lvl.audioCodec;
+                                const currentTrackObj = qoeData.audioTracks.find(t => t.id === qoeData.currentAudioTrack);
+                                if (currentTrackObj) currentTrackObj.codec = lvl.audioCodec;
+                                addEvent(`Updated initial audio track codec to ${lvl.audioCodec}`, 'audio');
+                            }
+                        } else {
+                            qualityEventMsg += ` (No audio codec info)`;
+                            if (!explicitAudioTracksFound) qoeData.currentAudioCodec = '?';
+                        }
+                        addEvent(qualityEventMsg, 'quality-change');
+                    } else {
+                         addEvent(`Initial quality level not found (Index: ${initialLevelIndex})`, 'error');
+                    }
+                } else {
+                     addEvent(`No quality levels found in manifest`, 'error');
+                }
+
+                updateQoEDisplay(); // Update UI after parsing everything
             });
 
-            // AUDIO TRACK SWITCHED (User or ABR initiated switch between explicit tracks)
+            hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) => {
+                 console.log('[qoe_ui] AUDIO_TRACKS_UPDATED fired');
+                 const previouslyInferred = qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0;
+
+                 if (data.audioTracks && data.audioTracks.length > 0) {
+                      qoeData.audioTracks = data.audioTracks.map(t => ({ id: t.id, name: t.name || `Track ${t.id}`, language: t.lang || 'und', default: !!t.default, codec: t.audioCodec || '?' }));
+                      const currentTrackIndex = hls.audioTrack; // HLS gives index in the *new* list
+                      const activeTrack = qoeData.audioTracks[currentTrackIndex]; // Get from our mapped array
+
+                      if (activeTrack) {
+                           qoeData.currentAudioTrack = activeTrack.id; // Store the ID
+                           qoeData.currentAudioCodec = activeTrack.codec || '?'; // Update codec
+                           const message = previouslyInferred ? `Replaced inferred audio with ${qoeData.audioTracks.length} explicit track(s)` : `Updated audio tracks list (${qoeData.audioTracks.length} found)`;
+                           addEvent(message, 'audio');
+                           addEvent(`Audio → ${activeTrack.name || activeTrack.id} (ID: ${activeTrack.id}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
+                      } else {
+                           qoeData.currentAudioTrack = null; // Fallback
+                           qoeData.currentAudioCodec = '?';
+                           addEvent(`Audio tracks updated, but couldn't identify active track (Index: ${currentTrackIndex})`, 'error');
+                      }
+                 } else { // Event fired with empty list
+                      if (!previouslyInferred) { // Clear only if we didn't have an inferred track
+                           qoeData.audioTracks = [];
+                           qoeData.currentAudioTrack = null;
+                           qoeData.currentAudioCodec = '?';
+                           addEvent(`Explicit audio tracks list cleared`, 'audio');
+                      } else {
+                           addEvent(`AUDIO_TRACKS_UPDATED: Fired with empty list, keeping inferred track`, 'audio');
+                      }
+                 }
+                 updateQoEDisplay();
+            });
+
             hls.on(Hls.Events.AUDIO_TRACK_SWITCHED, (_, data) => {
-                // data.id is the *ID* of the now‐active audio track
                 const switchedTrackId = data.id;
                 const switchedTrack = qoeData.audioTracks.find(track => track.id === switchedTrackId);
 
                 if (switchedTrack) {
-                    qoeData.currentAudioTrack = switchedTrackId; // Update active track ID
-                    qoeData.currentAudioCodec = switchedTrack.codec || '?'; // Update codec
+                    qoeData.currentAudioTrack = switchedTrackId;
+                    qoeData.currentAudioCodec = switchedTrack.codec || '?';
                     addEvent(`Audio → ${switchedTrack.name || switchedTrackId} (ID: ${switchedTrackId}, Codec: ${qoeData.currentAudioCodec})`, 'audio-switch');
-                } else {
-                    // If the switched track ID isn't in our list (shouldn't happen often)
-                    qoeData.currentAudioTrack = switchedTrackId; // Still store the ID HLS reports
-                    qoeData.currentAudioCodec = '?'; // Codec unknown
+                } else { // Track not found in our list, update based on ID HLS gave
+                    qoeData.currentAudioTrack = switchedTrackId;
+                    qoeData.currentAudioCodec = '?'; // Codec is unknown
                     addEvent(`Audio → Switched to unknown track ID: ${switchedTrackId}`, 'audio-switch');
                 }
                 updateQoEDisplay();
             });
 
-            // --- Consolidated Error Handling ---
-            // Remove the separate audio error handler block if it exists.
-            hls.off(Hls.Events.ERROR, audioErrorHandler); // Assuming you might have named the specific audio error handler if separated
-
-            // Single comprehensive error handler
+            // --- Consolidated Error Handling ---                        
             const genericErrorHandler = (_, data) => {
-                let errorMessage = `HLS Error: ${data.type} - ${data.details}`;
-                if (data.fatal) {
-                    errorMessage += " (Fatal)";
-                }
-                if (data.reason) {
-                    errorMessage += ` Reason: ${data.reason}`;
-                }
-                // Add context if available (e.g., URL, fragment info)
+                let errorMessage = `HLS Error: ${data.type || 'Unknown Type'} - ${data.details || 'No Details'}`;
+                if (data.fatal) errorMessage += " (Fatal)";
+                if (data.reason) errorMessage += ` Reason: ${data.reason}`;
                 if (data.context) {
                     if (data.context.url) errorMessage += ` URL: ${data.context.url}`;
                     if (typeof data.context.level === 'number') errorMessage += ` Level: ${data.context.level}`;
                 }
 
-                console.error('HLS Error:', data); // Log the full error object for debugging
+                // ***** START CORRECTION *****
+                // Check for segment failure count using string comparison for context type
+
+                // Check for Network Errors related to fragments
+                if (data.type === Hls.ErrorTypes.NETWORK_ERROR &&
+                    data.context &&
+                    typeof data.context.type === 'string' && // Ensure context.type is a string
+                    data.context.type.toLowerCase() === 'fragment' && // Compare with string "fragment"
+                    (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
+                        data.details === Hls.ErrorDetails.FRAG_LOAD_TIMEOUT)) {
+                    qoeData.totalSegmentsFailed++;
+                    // console.log(`[qoe_ui] Segment network failure detected: ${data.details}, FailCount=${qoeData.totalSegmentsFailed}`);
+                }
+                // Check for Media Errors (like parsing) related to fragments
+                else if (data.type === Hls.ErrorTypes.MEDIA_ERROR &&
+                    data.context &&
+                    typeof data.context.type === 'string' && // Ensure context.type is a string
+                    data.context.type.toLowerCase() === 'fragment' && // Compare with string "fragment"
+                    data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR) {
+                    qoeData.totalSegmentsFailed++;
+                    // console.log(`[qoe_ui] Segment parsing failure detected, FailCount=${qoeData.totalSegmentsFailed}`);
+                }
+                // ***** END CORRECTION *****
+
+                console.error('HLS Error Event:', data); // Log full error object
                 addEvent(errorMessage, 'error');
 
-                // Specific handling/logging for audio-related errors
-                if (data.details && data.details.toLowerCase().includes('audio') || data.type?.toLowerCase().includes('audio')) {
+                // Log potential audio-specific errors
+                if ((data.details && data.details.toLowerCase().includes('audio')) || (data.type && data.type.toLowerCase().includes('audio'))) {
                     addEvent(`Potential Audio Error Detected: ${data.details || data.type}`, 'error');
-                    // You could potentially update UI state here if needed, e.g., mark audio as errored
-                    // qoeData.currentAudioCodec = 'ERROR';
                 }
 
-                updateQoEDisplay();
-            };
+                updateQoEDisplay(); // Update UI after error
+            }; // End genericErrorHandler
+
             // Attach the single handler
             hls.on(Hls.Events.ERROR, genericErrorHandler);
 
-            // Make sure to detach if needed on cleanup
+            // Cleanup listener on unload (optional but good practice)
             // window.addEventListener('beforeunload', () => {
-            //     if (hls) {
-            //         hls.off(Hls.Events.ERROR, genericErrorHandler);
-            //     }
+            //    if (hls) {
+            //        hls.off(Hls.Events.ERROR, genericErrorHandler);
+            //    }
             // });
 
-        } // End if(hls)
+        } else {
+             console.error("[qoe_ui] HLS instance provided to hookVideoAndHls was invalid or missing 'on' method.");
+        }
     } // End hookVideoAndHls
 
-    // --- Dummy audioErrorHandler function just for the .off() call above ---
-    // You can remove this if you didn't have a separate named function before.
-    function audioErrorHandler() { }
-
 
     // -----------------------
-    // Event history
+    // Render QoS Tab Metrics
     // -----------------------
-    function addEvent(msg, type = '') {
-        const ev = { time: new Date(), msg, type };
-        qoeData.eventHistory.unshift(ev);
-        if (qoeData.eventHistory.length > 100) qoeData.eventHistory.pop();
-        renderHistory(); // Render history immediately after adding event
+    function renderQoS() {
+        const container = document.getElementById('qosContainer');
+        if (!container) {
+            // console.warn('[qoe_ui] QoS container not found'); // Only log once if needed
+            return;
+        }
+
+        // Helper to calculate average safely
+        const safeAvg = (arr) => {
+            if (!arr || arr.length === 0) return null;
+            // Filter out non-numeric values before summing
+            const numericArr = arr.filter(item => typeof item === 'number' && isFinite(item));
+            if (numericArr.length === 0) return null;
+            const sum = numericArr.reduce((a, b) => a + b, 0);
+            return sum / numericArr.length;
+        };
+
+        // 1. Available Bandwidth Estimation (Using average download speed in Bps -> Mbps)
+        const avgBwBytesPerSec = safeAvg(qoeData.downloadSpeed);
+        document.getElementById('availableBandwidth').textContent = avgBwBytesPerSec !== null
+            ? (avgBwBytesPerSec * 8 / 1e6).toFixed(2) + ' Mbps'
+            : 'N/A';
+
+        // 2. Average Segment Download Time
+        const avgSegTimeMs = safeAvg(qoeData.segmentDownloadTimes);
+        document.getElementById('avgSegmentDownloadTime').textContent = avgSegTimeMs !== null
+            ? (avgSegTimeMs < 1000 ? avgSegTimeMs.toFixed(0) + ' ms' : (avgSegTimeMs / 1000).toFixed(2) + ' s')
+            : 'N/A';
+
+        // 3. Segment Success Rate
+        let successRateText = 'N/A';
+        if (qoeData.totalSegmentsRequested > 0) {
+            // Ensure loaded count doesn't exceed requested (can happen in rare race conditions)
+            const loaded = Math.min(qoeData.totalSegmentsLoaded, qoeData.totalSegmentsRequested);
+            const rate = (loaded / qoeData.totalSegmentsRequested) * 100;
+            successRateText = rate.toFixed(1) + `% (${loaded}/${qoeData.totalSegmentsRequested})`;
+        } else if (qoeData.totalSegmentsRequested === 0 && qoeData.totalSegmentsLoaded === 0 && qoeData.totalSegmentsFailed === 0) {
+             successRateText = '100% (0/0)'; // Or 'N/A'
+        }
+        document.getElementById('segmentSuccessRate').textContent = successRateText;
+
+        // 4. Server Response Time (Average Playlist Latency)
+        const avgPlaylistLatency = safeAvg(qoeData.playlistLatencies);
+        document.getElementById('serverResponseTime').textContent = avgPlaylistLatency !== null
+            ? `${avgPlaylistLatency.toFixed(0)} ms`
+            : 'N/A';
+
+        // 5. Packet Loss Rate (Static)
+        // document.getElementById('packetLossRate').textContent = 'N/A (Not Measurable)';
     }
 
-    // ... (renderHistory, detectCDN remain the same) ...
+
+    // -----------------------
+    // Event history Rendering
+    // -----------------------
+    function addEvent(msg, type = 'info') { // Default type to 'info'
+        const ev = { time: new Date(), msg, type };
+        qoeData.eventHistory.unshift(ev); // Add to beginning
+        if (qoeData.eventHistory.length > 100) { // Limit history size
+            qoeData.eventHistory.pop();
+        }
+        renderHistory(); // Update display immediately
+    }
+
     function renderHistory() {
         const container = document.getElementById('qoeEventHistory');
         if (!container) return;
@@ -504,7 +580,8 @@ console.log('[qoe_ui] Initializing QoE UI…');
         }
         qoeData.eventHistory.forEach(ev => {
             const div = document.createElement('div');
-            div.className = 'qoe-history-event' + (ev.type ? ' event-' + ev.type : '');
+            // Add base class and event-type class
+            div.className = `qoe-history-event event-${ev.type}`;
             // Format timestamp and message
             div.innerHTML = `<span class="qoe-history-timestamp">[${ev.time.toLocaleTimeString()}]</span> ${ev.msg}`;
             container.appendChild(div);
@@ -512,147 +589,134 @@ console.log('[qoe_ui] Initializing QoE UI…');
     }
 
     // -----------------------
-    // CDN detection (Keep as is)
+    // CDN detection Logic
     // -----------------------
     function detectCDN(url, headers = {}) {
-        if (!url) return; // Guard against null/undefined URL
+        if (!url) return;
         const u = url.toLowerCase();
         let cdn = 'Unknown';
-        let currentCDN = qoeData.cdnProvider; // Get current value
+        let currentCDN = qoeData.cdnProvider;
 
-        // URL‐based checks
-        if (u.includes('akamaized.net') || u.includes('akamaihd.net') || u.includes('akamaitechnologies')) cdn = 'Akamai';
-        else if (u.includes('edgekey.net') || u.includes('edgesuite.net')) cdn = 'Akamai'; // More Akamai TLDs
-        else if (u.includes('llnwd.net') || u.includes('limelight')) cdn = 'Limelight (Edgio)';
-        else if (u.includes('fastly')) cdn = 'Fastly';
-        else if (u.includes('cloudfront.net')) cdn = 'CloudFront';
-        else if (u.includes('cloudflare')) cdn = 'Cloudflare';
-        else if (u.includes('level3.net') || u.includes('lumen.com')) cdn = 'Lumen (Level 3)';
-        else if (u.includes('edgecastcdn.net') || u.includes('cedexis.com')) cdn = 'Verizon (Edgecast)';
-        else if (u.includes('hwcdn.net')) cdn = 'Highwinds (StackPath)';
-        else if (u.includes('azioncdn.net')) cdn = 'Azion';
-        else if (u.includes('cdnetworks.net')) cdn = 'CDNetworks';
-        else if (u.includes('incapdns.net')) cdn = 'Imperva';
-        else if (u.includes('qwilt')) cdn = 'Qwilt'; // Keep Qwilt check
-        else if (u.includes('jsdelivr.net')) cdn = 'jsDelivr'; // Keep jsDelivr
-
-
-        // Header‐based checks (often more reliable) - case-insensitive header keys
+        // Header checks (more reliable) - case-insensitive keys
         const lowerCaseHeaders = {};
         for (const key in headers) {
-            lowerCaseHeaders[key.toLowerCase()] = headers[key];
+            if (Object.hasOwnProperty.call(headers, key)) {
+                lowerCaseHeaders[key.toLowerCase()] = headers[key];
+            }
         }
 
-        if (lowerCaseHeaders['server']?.toLowerCase().includes('cloudflare')) cdn = 'Cloudflare';
-        if (lowerCaseHeaders['cf-ray'] || lowerCaseHeaders['cf-cache-status']) cdn = 'Cloudflare';
-        if (lowerCaseHeaders['x-amz-cf-id'] || lowerCaseHeaders['x-amz-cf-pop']) cdn = 'CloudFront';
-        if (lowerCaseHeaders['x-cache']?.includes('cloudfront')) cdn = 'CloudFront'; // Alternative header
-        if (lowerCaseHeaders['server']?.toLowerCase().includes('awselb')) cdn = 'AWS ELB/CloudFront'; // Could be behind ELB
-        if (lowerCaseHeaders['x-served-by'] && lowerCaseHeaders['x-served-by'].includes('cache-')) cdn = 'Fastly';
-        if (lowerCaseHeaders['x-fastly-backend-reqs']) cdn = 'Fastly'; // Alternative Fastly header
-        if (lowerCaseHeaders['server']?.toLowerCase().startsWith('ecs')) cdn = 'Verizon (Edgecast)';
-        if (lowerCaseHeaders['x-ec-debug']) cdn = 'Verizon (Edgecast)'; // Alternative Edgecast
-        if (lowerCaseHeaders['server']?.toLowerCase().includes('gse')) cdn = 'Google Cloud CDN';
-        if (lowerCaseHeaders['via']?.includes('google')) cdn = 'Google Cloud CDN';
-        if (lowerCaseHeaders['x-hw']?.length > 0) cdn = 'Highwinds (StackPath)'; // Stackpath/Highwinds
-        if (lowerCaseHeaders['x-powered-by-nitrosell']) cdn = 'Imperva'; // Example custom
-        if (lowerCaseHeaders['x-cdn']?.toLowerCase().includes('imperva')) cdn = 'Imperva';
-        if (lowerCaseHeaders['x-iinfo']) cdn = 'Imperva'; // Another Imperva header
-        // Akamai Specific: Often uses 'Server' or 'X-Akamai-Request-ID', 'X-Cache', 'X-Cache-Key'
-        if (lowerCaseHeaders['server']?.toLowerCase().includes('akamai')) cdn = 'Akamai';
-        if (lowerCaseHeaders['x-akamai-request-id']) cdn = 'Akamai';
-        if (lowerCaseHeaders['x-cache']?.includes('from AkamaiGHost')) cdn = 'Akamai';
-        // Limelight/Edgio
-        if (lowerCaseHeaders['x-ll-cache-action']) cdn = 'Limelight (Edgio)';
+        if (lowerCaseHeaders['server']?.toLowerCase().includes('cloudflare') || lowerCaseHeaders['cf-ray'] || lowerCaseHeaders['cf-cache-status']) cdn = 'Cloudflare';
+        else if (lowerCaseHeaders['x-amz-cf-id'] || lowerCaseHeaders['x-amz-cf-pop'] || lowerCaseHeaders['x-cache']?.includes('cloudfront')) cdn = 'CloudFront';
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('awselb')) cdn = 'AWS ELB/CloudFront';
+        else if ((lowerCaseHeaders['x-served-by'] && lowerCaseHeaders['x-served-by'].includes('cache-')) || lowerCaseHeaders['x-fastly-backend-reqs']) cdn = 'Fastly';
+        else if (lowerCaseHeaders['server']?.toLowerCase().startsWith('ecs') || lowerCaseHeaders['x-ec-debug']) cdn = 'Verizon (Edgecast)';
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('gse') || lowerCaseHeaders['via']?.includes('google')) cdn = 'Google Cloud CDN';
+        else if (lowerCaseHeaders['x-hw']?.length > 0) cdn = 'Highwinds (StackPath)';
+        else if (lowerCaseHeaders['x-cdn']?.toLowerCase().includes('imperva') || lowerCaseHeaders['x-iinfo'] || lowerCaseHeaders['x-powered-by-nitrosell']) cdn = 'Imperva';
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('akamai') || lowerCaseHeaders['x-akamai-request-id'] || lowerCaseHeaders['x-cache']?.includes('from AkamaiGHost')) cdn = 'Akamai';
+        else if (lowerCaseHeaders['x-ll-cache-action']) cdn = 'Limelight (Edgio)';
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('keycdn')) cdn = 'KeyCDN'; // Example addition
+
+
+        // URL checks (fallback)
+        if (cdn === 'Unknown') {
+            if (u.includes('akamaized.net') || u.includes('akamaihd.net') || u.includes('akamaitechnologies') || u.includes('edgekey.net') || u.includes('edgesuite.net')) cdn = 'Akamai';
+            else if (u.includes('llnwd.net') || u.includes('limelight')) cdn = 'Limelight (Edgio)';
+            else if (u.includes('fastly')) cdn = 'Fastly';
+            else if (u.includes('cloudfront.net')) cdn = 'CloudFront';
+            else if (u.includes('cloudflare')) cdn = 'Cloudflare';
+            else if (u.includes('level3.net') || u.includes('lumen.com')) cdn = 'Lumen (Level 3)';
+            else if (u.includes('edgecastcdn.net') || u.includes('cedexis.com')) cdn = 'Verizon (Edgecast)';
+            else if (u.includes('hwcdn.net')) cdn = 'Highwinds (StackPath)';
+            else if (u.includes('azioncdn.net')) cdn = 'Azion';
+            else if (u.includes('cdnetworks.net')) cdn = 'CDNetworks';
+            else if (u.includes('incapdns.net')) cdn = 'Imperva';
+            else if (u.includes('keycdn.com')) cdn = 'KeyCDN'; // Example addition
+            else if (u.includes('qwilt')) cdn = 'Qwilt';
+            else if (u.includes('jsdelivr.net')) cdn = 'jsDelivr';
+        }
+
 
         // Update only if CDN changed from Unknown or changed to a different known CDN
         if (cdn !== 'Unknown' && cdn !== currentCDN) {
             qoeData.cdnProvider = cdn;
-            // Tag as 'cdn' so it picks up our dark-blue .event-cdn style
             addEvent(`CDN detected: ${cdn}`, 'cdn');
-            // No need to call updateQoEDisplay here, FRAG_LOADED already does
-        } else if (cdn === 'Unknown' && currentCDN === 'Unknown') {
-            // Still unknown after checks
+            // No need to call updateQoEDisplay here, FRAG_LOADED (which usually calls this) already does
         }
     }
 
 
-    // ... (calculateQoE - commented out, updateQoEDisplay core structure remains) ...
-    // ... Need to update renderAudio slightly ...
-
     // -----------------------
-    // Update all pieces of the UI
+    // Update all UI pieces
     // -----------------------
     function updateQoEDisplay() {
-        // metrics rows (Keep existing logic, it uses qoeData properties)
+       // console.log('[qoe_ui] updateQoEDisplay called'); // Frequent log, uncomment for deep debugging
+
+        // Update main playback metrics
         const rows = [
             ['cdnProvider', qoeData.cdnProvider],
             ['startupTime', qoeData.loadStart && qoeData.firstFrame ? ((qoeData.firstFrame - qoeData.loadStart) / 1000).toFixed(2) + 's' : 'N/A'],
             ['timeToFirstFrame', qoeData.startTime && qoeData.firstFrame ? ((qoeData.firstFrame - qoeData.startTime) / 1000).toFixed(2) + 's' : 'N/A'],
             ['qualitySwitches', qoeData.qualitySwitches],
             ['rebufferingEvents', qoeData.rebufferingEvents],
-            ['avgRebufferDuration', qoeData.rebufferingDurations.length ?
-                (qoeData.rebufferingDurations.reduce((a, b) => a + b, 0) / qoeData.rebufferingDurations.length).toFixed(2) + 's' : 'N/A'],
-            ['currentBitrate', qoeData.currentBitrate
-                ? (qoeData.currentBitrate / 1e6).toFixed(2) + ' Mbps'
-                : 'N/A'],
-            ['currentResolution', qoeData.currentResolution || 'N/A'], // <<< ADDED: Display Resolution
+            ['avgRebufferDuration', qoeData.rebufferingDurations.length ? (qoeData.rebufferingDurations.reduce((a, b) => a + b, 0) / qoeData.rebufferingDurations.length).toFixed(2) + 's' : 'N/A'],
+            ['currentBitrate', qoeData.currentBitrate ? (qoeData.currentBitrate / 1e6).toFixed(2) + ' Mbps' : 'N/A'],
+            ['currentResolution', qoeData.currentResolution || 'N/A'], // Display Resolution
             ['playbackRate', qoeData.playbackRate + 'x']
         ];
         rows.forEach(([id, val]) => {
             const el = document.getElementById(id);
-            if (el) el.textContent = val !== null && val !== undefined ? val : 'N/A'; // Ensure N/A for null/undefined
+            if (el) el.textContent = val !== null && val !== undefined ? val : 'N/A';
+            // else console.warn(`[qoe_ui] Element not found for metric: ${id}`); // Debug log
         });
 
-        renderAudio(); // Update audio display
-        renderSubs(); // Update subtitle display
-        renderConnection(); // Update connection display
-    }
+        // Update detail tab panels
+        renderAudio();
+        renderSubs();
+        renderConnection();
+        renderQoS(); // Render the new QoS tab data
 
+    } // End updateQoEDisplay
+
+    // -----------------------
+    // Render Audio Tab
+    // -----------------------
     function renderAudio() {
         const container = document.getElementById('audioTracksContainer');
         if (!container) return;
-
-        // Clear previous content
-        container.innerHTML = '';
+        container.innerHTML = ''; // Clear previous
 
         if (!qoeData.audioTracks || qoeData.audioTracks.length === 0) {
-            // Display message if no tracks (explicit or inferred) are available
             container.textContent = 'No audio track information available';
-            // Optionally display the standalone codec if known even without a track entry
-            // if (qoeData.currentAudioCodec && qoeData.currentAudioCodec !== '?') {
-            //    container.textContent = `Muxed Audio Detected (Codec: ${qoeData.currentAudioCodec})`;
-            // }
             return;
         }
 
-        // Render each track (explicit or the single inferred one)
         qoeData.audioTracks.forEach(track => {
             const row = document.createElement('div');
             row.className = 'qoe-metric-row';
 
             const nameEl = document.createElement('span');
             nameEl.className = 'qoe-metric-name';
-            // Add [Default] marker if applicable
             const nameText = `${track.name} (${track.language || 'und'})${track.default ? ' [Default]' : ''}`;
             nameEl.textContent = nameText;
-            nameEl.title = `Track ID: ${track.id}`; // Add ID as tooltip
+            nameEl.title = `Track ID: ${track.id}`;
 
             const valEl = document.createElement('span');
             valEl.className = 'qoe-metric-value';
-            // Use track.codec, fallback to global currentAudioCodec only if track.codec is missing/invalid
+            // Use specific track codec if available and valid, otherwise fallback to global current codec
             const displayCodec = track.codec && track.codec !== '?' ? track.codec : qoeData.currentAudioCodec;
-            valEl.textContent = displayCodec || '?'; // Display codec, fallback to '?'
+            valEl.textContent = displayCodec || '?';
 
-            // <<< UPDATED: Highlight active track by comparing track.id with qoeData.currentAudioTrack >>>
+            // Highlight active track
             if (track.id === qoeData.currentAudioTrack) {
                 nameEl.style.fontWeight = 'bold';
-                nameEl.style.color = 'white'; // Ensure visibility against dark background if needed
                 valEl.style.fontWeight = 'bold';
-                valEl.style.color = '#b2d1f0';
+                valEl.style.color = '#b2d1f0'; // Active color
+                nameEl.style.color = 'white'; // Ensure name is readable
             } else {
-                // Style non-active tracks differently if desired
-                nameEl.style.color = '#ccc'; // Lighter grey for non-active
+                nameEl.style.fontWeight = 'normal'; // Reset font weight
+                valEl.style.fontWeight = 'normal';
+                nameEl.style.color = '#ccc'; // Non-active color
                 valEl.style.color = '#ccc';
             }
 
@@ -662,100 +726,78 @@ console.log('[qoe_ui] Initializing QoE UI…');
         });
     }
 
-    // ... (renderSubs, renderConnection remain the same) ...
+    // -----------------------
+    // Render Subtitles Tab
+    // -----------------------
     function renderSubs() {
-        const c = document.getElementById('subtitlesContainer');
-        if (!c) return;
-        c.innerHTML = ''; // Clear previous
+        const container = document.getElementById('subtitlesContainer');
+        if (!container) return;
+        container.innerHTML = ''; // Clear previous
+
         if (!qoeData.subtitleTracks || qoeData.subtitleTracks.length === 0) {
-            c.textContent = 'No subtitle information available';
+            container.textContent = 'No subtitle information available';
         } else {
-            qoeData.subtitleTracks.forEach((t, i) => {
-                const d = document.createElement('div');
-                d.className = 'qoe-metric-row'; // Use same class as audio/connection for consistency?
+            qoeData.subtitleTracks.forEach(t => {
+                const row = document.createElement('div');
+                row.className = 'qoe-metric-row';
 
                 const nameEl = document.createElement('span');
                 nameEl.className = 'qoe-metric-name';
                 nameEl.textContent = `${t.name || 'Subtitle'} (${t.language || 'und'})${t.default ? ' [Default]' : ''}`;
                 nameEl.title = `Track ID: ${t.id}`;
 
-                // Maybe add a value span if there's something else to show (e.g., active status)
+                // Optionally add value if needed (e.g., active state)
                 // const valEl = document.createElement('span');
                 // valEl.className = 'qoe-metric-value';
-                // valEl.textContent = (hls && hls.subtitleTrack === t.id) ? 'Active' : ''; // Check if active
+                // valEl.textContent = (hls && hls.subtitleTrack === t.id) ? 'Active' : ''; // Check active (requires access to hls instance)
 
-                d.appendChild(nameEl);
-                // d.appendChild(valEl);
-                c.appendChild(d);
+                row.appendChild(nameEl);
+                // row.appendChild(valEl);
+                container.appendChild(row);
             });
         }
     }
 
+    // -----------------------
+    // Render Connection Tab
+    // -----------------------
     function renderConnection() {
-        // Helper to calculate average safely
-        const safeAvg = (arr) => {
-            if (!arr || arr.length === 0) return null;
-            const sum = arr.reduce((a, b) => a + (typeof b === 'number' ? b : 0), 0);
-            return sum / arr.length;
+        const safeAvg = (arr) => { // Re-define helper or make it global/scoped
+             if (!arr || arr.length === 0) return null;
+             const numericArr = arr.filter(item => typeof item === 'number' && isFinite(item));
+             if (numericArr.length === 0) return null;
+             const sum = numericArr.reduce((a, b) => a + b, 0);
+             return sum / numericArr.length;
         };
 
-        // 1) TCP throughput
+        // Throughput
         const avgTp = safeAvg(qoeData.throughput);
         document.getElementById('tcpThroughput').textContent = avgTp !== null ? (avgTp / 1e6).toFixed(2) + ' Mbps' : 'N/A';
 
-        // 2) Download speed
+        // Download Speed
         const avgDl = safeAvg(qoeData.downloadSpeed);
         let dlText = 'N/A';
         if (avgDl !== null) {
-            dlText = avgDl >= 1e6
-                ? (avgDl / 1e6).toFixed(2) + ' MB/s'
-                : (avgDl / 1e3).toFixed(2) + ' KB/s';
+            dlText = avgDl >= 1e6 ? (avgDl / 1e6).toFixed(2) + ' MB/s' : (avgDl / 1e3).toFixed(2) + ' KB/s';
         }
         document.getElementById('downloadSpeed').textContent = dlText;
 
-        // 3) Connection type (and optional downlink/RTT)
-        let connText = 'N/A';
+        // Connection Type (Browser API)
+        let connText = 'Unknown'; // Default
         if (navigator.connection) {
             const c = navigator.connection;
-            connText = c.effectiveType || 'unknown';
+            connText = c.effectiveType ? c.effectiveType : 'Unknown';
             if (typeof c.downlink === 'number') connText += ` (~${c.downlink.toFixed(1)} Mbps)`;
             if (typeof c.rtt === 'number') connText += `, RTT ${c.rtt} ms`;
+        } else {
+             connText = 'N/A (API unavailable)';
         }
         document.getElementById('connectionType').textContent = connText;
 
-        // 4) Average latency (first-byte)
+        // Latency (Fragment TTFB)
         const avgLat = safeAvg(qoeData.latency);
         document.getElementById('latency').textContent = avgLat !== null ? `${avgLat.toFixed(0)} ms` : 'N/A';
     }
-
-
-    // --- Initial Setup Calls ---
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('[qoe_ui] DOMContentLoaded');
-        setupDetailTabs();
-        updateQoEDisplay(); // Initial render with N/A values
-        // Note: hookVideoAndHls is called later via 'hlsLoaded' event
-    });
-
-    // --- Player Loader Event ---
-    document.addEventListener('hlsLoaded', e => {
-        console.log('[qoe_ui] hlsLoaded event received');
-        // const hlsInstance = e.detail.hls; // If passed in event detail
-        // if (!hlsInstance && !window.hlsPlayerInstance) { // Check both
-        //     console.warn('[qoe_ui] hlsLoaded fired but no Hls instance found');
-        //     return;
-        // }
-        // hookVideoAndHls(hlsInstance || window.hlsPlayerInstance); // Pass the instance
-
-        // Using original approach assuming window.hlsPlayerInstance is set correctly by player_loader
-        if (!window.hlsPlayerInstance) {
-            console.warn('[qoe_ui] hlsLoaded fired but window.hlsPlayerInstance not found');
-            return;
-        }
-        hookVideoAndHls(); // Assumes hookVideoAndHls uses window.hlsPlayerInstance
-        // updateQoEDisplay(); // hookVideoAndHls calls updateQoEDisplay internally via events
-    });
-
 
 })(); // End IIFE
 
