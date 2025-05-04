@@ -13,7 +13,10 @@ const state = {
     playlistRefreshInterval: null,
     updateInterval: 3000, // ms
     isLive: false,
-    initialLoadComplete: false
+    initialLoadComplete: false,
+    lastHttpStatus: null, //  Store the last HTTP status code
+    targetDuration: null,
+    hlsVersion: null
 };
 
 // ---- Event Dispatcher ----
@@ -82,7 +85,7 @@ function initHlsParser(url) {
         .catch(err => {
             console.error('[hls_parser] Manifest load failed:', err);
             dispatchStatusUpdate(`Error loading manifest: ${err.message}`);
-             // Update the initial UI entry to show the error
+            // Update the initial UI entry to show the error
             document.dispatchEvent(new CustomEvent('hlsUpdateSegmentType', {
                 detail: { url: url, type: 'error', title: 'Load Failed' }
             }));
@@ -92,6 +95,7 @@ function initHlsParser(url) {
 // ---- Playlist Fetch ----
 async function fetchManifest(url) {
     console.log('[hls_parser] Fetching manifest:', url);
+    let response = null;
     try {
         const response = await fetch(url, {
             method: 'GET',
@@ -105,19 +109,27 @@ async function fetchManifest(url) {
             cache: 'no-store' // Stronger cache prevention
         });
 
+        state.lastHttpStatus = response.status; // Store the status code immediately
+
         console.log(`[hls_parser] Response for ${getShortUrl(url)}: ${response.status} ${response.statusText}`);
         if (!response.ok) {
             throw new Error(`HTTP error ${response.status}: ${response.statusText}`);
         }
         const text = await response.text();
         if (!text || !text.includes('#EXTM3U')) {
-             throw new Error('Invalid M3U8 content received');
+            throw new Error('Invalid M3U8 content received');
         }
         return text;
 
     } catch (error) {
-         console.error(`[hls_parser] Fetch error for ${url}:`, error);
-         throw error; // Re-throw to be caught by caller
+
+        if (!response) {
+            state.lastHttpStatus = null; // Indicate fetch failure, not an HTTP status
+            console.error(`[hls_parser] Network or fetch error for ${url}:`, error);
+        } else {
+            console.error(`[hls_parser] Fetch error for ${url}:`, error);
+        }
+        throw error; // Re-throw to be caught by caller
     }
 }
 
@@ -152,8 +164,8 @@ function parseMasterPlaylist(content, baseUrl) {
 
     dispatchStatusUpdate(`Loading media playlist: ${getShortUrl(mediaUrl)}`);
 
-     // Add media playlist entry to UI
-     dispatchSegmentAdded({
+    // Add media playlist entry to UI
+    dispatchSegmentAdded({
         id: `media_${id}`, // Unique ID for this media playlist entry
         url: mediaUrl,
         title: `Media Playlist (${selectedVariant.resolution || 'Variant'})`,
@@ -178,7 +190,7 @@ function parseMasterPlaylist(content, baseUrl) {
             parseMediaPlaylist(mediaContent, mediaUrl, id);
 
             // Check if live AFTER parsing segments
-             if (!mediaContent.includes('#EXT-X-ENDLIST')) {
+            if (!mediaContent.includes('#EXT-X-ENDLIST')) {
                 state.isLive = true;
                 dispatchStatusUpdate(`Live stream detected. Refreshing playlist every ${state.updateInterval / 1000}s`);
                 startPlaylistRefresh(mediaUrl, id);
@@ -192,7 +204,7 @@ function parseMasterPlaylist(content, baseUrl) {
             console.error(`[hls_parser] Media playlist load failed for ${mediaUrl}:`, err);
             dispatchStatusUpdate(`Error loading media playlist: ${err.message}`);
             // Update UI entry for this media playlist to show error
-             document.dispatchEvent(new CustomEvent('hlsUpdateSegmentType', {
+            document.dispatchEvent(new CustomEvent('hlsUpdateSegmentType', {
                 detail: { url: mediaUrl, type: 'error', title: `Media Load Failed (${selectedVariant.resolution || 'Variant'})` }
             }));
         });
@@ -202,7 +214,7 @@ function parseMasterPlaylist(content, baseUrl) {
 function handleDirectMediaPlaylist(content, url) {
     const id = 'default_media'; // Simple ID for direct media playlist
 
-     // Update the original 'unknown' entry added by initHlsParser
+    // Update the original 'unknown' entry added by initHlsParser
     document.dispatchEvent(new CustomEvent('hlsUpdateSegmentType', {
         detail: { url: url, type: 'media', title: 'Media Playlist' }
     }));
@@ -218,8 +230,8 @@ function handleDirectMediaPlaylist(content, url) {
         dispatchStatusUpdate(`Live stream detected. Refreshing playlist every ${state.updateInterval / 1000}s`);
         startPlaylistRefresh(url, id);
     } else {
-         state.isLive = false;
-         dispatchStatusUpdate('VOD stream loaded.');
+        state.isLive = false;
+        dispatchStatusUpdate('VOD stream loaded.');
     }
     dispatchPlaylistParsed('media', { id, url, content });
 }
@@ -252,8 +264,8 @@ function extractVariantStreams(content) {
             streams.push(currentStreamInfo);
             currentStreamInfo = null; // Reset for the next potential stream
         } else if (!trimmedLine.startsWith('#EXT-X-STREAM-INF:') && !trimmedLine.startsWith('#') && trimmedLine) {
-             // If we encounter a URI without a preceding STREAM-INF, reset
-             currentStreamInfo = null;
+            // If we encounter a URI without a preceding STREAM-INF, reset
+            currentStreamInfo = null;
         }
     }
     return streams;
@@ -278,9 +290,9 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
         if (!line) continue;
 
         // Add this logging for SCTE-related lines
-    if (line.includes('SCTE') || line.includes('CUE')) {
-        console.log('[hls_parser] Potential SCTE line detected:', line);
-    }
+        if (line.includes('SCTE') || line.includes('CUE')) {
+            console.log('[hls_parser] Potential SCTE line detected:', line);
+        }
 
         if (window.SCTEDispatcher) {
             window.SCTEDispatcher.processTag(line);
@@ -309,11 +321,11 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
                         length: parseInt(byteRangeMatch[1], 10),
                         offset: byteRangeMatch[2] ? parseInt(byteRangeMatch[2], 10) : null // Offset is optional
                     };
-                     currentSegment.tags.push(line);
+                    currentSegment.tags.push(line);
                 }
             }
         } else if (line.startsWith('#EXT-X-KEY:')) {
-             currentKey = {
+            currentKey = {
                 method: line.match(/METHOD=([^,]+)/)?.[1],
                 uri: line.match(/URI="([^"]+)"/)?.[1] ? resolveUrl(line.match(/URI="([^"]+)"/)[1], baseUrl) : null,
                 iv: line.match(/IV=([^,]+)/)?.[1],
@@ -322,22 +334,22 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
             };
             // Apply key to subsequent segments (until next #EXT-X-KEY or METHOD=NONE)
             if (currentSegment) currentSegment.encryption = currentKey; // Apply to current if it exists
-             currentSegment?.tags.push(line);
+            currentSegment?.tags.push(line);
         } else if (line.startsWith('#EXT-X-MAP:')) {
             currentMap = {
-                 uri: resolveUrl(line.match(/URI="([^"]+)"/)?.[1], baseUrl),
-                 byterange: line.match(/BYTERANGE="([^"]+)"/)?.[1] // Optional
-             };
-             // Apply map to subsequent segments
-             if (currentSegment) currentSegment.map = currentMap;
-              currentSegment?.tags.push(line);
+                uri: resolveUrl(line.match(/URI="([^"]+)"/)?.[1], baseUrl),
+                byterange: line.match(/BYTERANGE="([^"]+)"/)?.[1] // Optional
+            };
+            // Apply map to subsequent segments
+            if (currentSegment) currentSegment.map = currentMap;
+            currentSegment?.tags.push(line);
 
         } else if (line.startsWith('#EXT-X-PROGRAM-DATE-TIME:')) {
             programDateTime = new Date(line.substring('#EXT-X-PROGRAM-DATE-TIME:'.length));
-             if (currentSegment) currentSegment.programDateTime = programDateTime; // Apply to current segment if EXTINF came first
-              currentSegment?.tags.push(line);
+            if (currentSegment) currentSegment.programDateTime = programDateTime; // Apply to current segment if EXTINF came first
+            currentSegment?.tags.push(line);
 
-        } else if (line === '#EXT-X-DISCONTINUITY')  {
+        } else if (line === '#EXT-X-DISCONTINUITY') {
             console.log('[hls_parser] Found exact #EXT-X-DISCONTINUITY tag.');
             discontinuitySequence++; // Increment discontinuity counter
             if (currentSegment) {
@@ -350,12 +362,12 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
                 // If discontinuity appears before EXTINF, store it to apply to the *next* segment
                 nextSegmentHasDiscontinuity = true;
             }
-             // Reset PDT context after discontinuity? (Check HLS spec - usually yes)
-             // programDateTime = null;
+            // Reset PDT context after discontinuity? (Check HLS spec - usually yes)
+            // programDateTime = null;
 
         } else if (line.startsWith('#EXT-X-MEDIA-SEQUENCE:')) {
-             // Already parsed mediaSequence above, just acknowledge
-             continue;
+            // Already parsed mediaSequence above, just acknowledge
+            continue;
         } else if (line.startsWith('#EXT-X-TARGETDURATION:')) {
             // Store target duration for context if needed
             state.targetDuration = parseInt(line.split(':')[1], 10);
@@ -375,9 +387,9 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
 
             // ---> APPLY DISCONTINUITY FLAG IF IT PRECEDED EXTINF <---
             if (nextSegmentHasDiscontinuity) {
-                 currentSegment.discontinuity = true;
-                 // Optionally add the tag line itself if needed: currentSegment.tags.push('#EXT-X-DISCONTINUITY');
-                 nextSegmentHasDiscontinuity = false; // Reset flag
+                currentSegment.discontinuity = true;
+                // Optionally add the tag line itself if needed: currentSegment.tags.push('#EXT-X-DISCONTINUITY');
+                nextSegmentHasDiscontinuity = false; // Reset flag
             }
             // ---> END APPLY FLAG <---
 
@@ -388,12 +400,12 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
 
             // ---> DISPATCH DISCONTINUITY EVENT IF SEGMENT HAS FLAG <---
             if (currentSegment.discontinuity) {
-                 console.log(`[hls_parser] Dispatching discontinuity for segment: ${currentSegment.id}`);
-                 document.dispatchEvent(new CustomEvent('hlsDiscontinuityDetected', {
-                      detail: {
-                           segment: currentSegment // Pass the whole segment object
-                      }
-                 }));
+                console.log(`[hls_parser] Dispatching discontinuity for segment: ${currentSegment.id}`);
+                document.dispatchEvent(new CustomEvent('hlsDiscontinuityDetected', {
+                    detail: {
+                        segment: currentSegment // Pass the whole segment object
+                    }
+                }));
             }
             // ---> END DISPATCH <---
 
@@ -405,26 +417,26 @@ function parseMediaPlaylist(content, baseUrl, playlistId) {
 
     // Update the segments list for this specific playlist in the state
     if (state.mediaPlaylists[playlistId]) {
-         // We might need more sophisticated merging logic for live streams
-         // to avoid duplicates if refresh is faster than segment duration.
-         // For now, just replace or append based on sequence numbers.
-         // Basic approach: find the latest known sequence from the new list
-         // and append segments with higher sequence numbers.
-         const existingSegments = state.mediaPlaylists[playlistId].segments;
-         const lastExistingSeq = existingSegments.length > 0 ? existingSegments[existingSegments.length - 1].sequence : -1;
+        // We might need more sophisticated merging logic for live streams
+        // to avoid duplicates if refresh is faster than segment duration.
+        // For now, just replace or append based on sequence numbers.
+        // Basic approach: find the latest known sequence from the new list
+        // and append segments with higher sequence numbers.
+        const existingSegments = state.mediaPlaylists[playlistId].segments;
+        const lastExistingSeq = existingSegments.length > 0 ? existingSegments[existingSegments.length - 1].sequence : -1;
 
-         const trulyNewSegments = newSegments.filter(s => s.sequence > lastExistingSeq);
-         state.mediaPlaylists[playlistId].segments.push(...trulyNewSegments);
+        const trulyNewSegments = newSegments.filter(s => s.sequence > lastExistingSeq);
+        state.mediaPlaylists[playlistId].segments.push(...trulyNewSegments);
 
-         // Log how many *new* segments were actually added after filtering
-         if (trulyNewSegments.length > 0) {
-             console.log(`[hls_parser] Added ${trulyNewSegments.length} new segments to playlist ${playlistId}`);
-         }
+        // Log how many *new* segments were actually added after filtering
+        if (trulyNewSegments.length > 0) {
+            console.log(`[hls_parser] Added ${trulyNewSegments.length} new segments to playlist ${playlistId}`);
+        }
 
     } else {
-         // Should not happen if playlist was added correctly before parsing
-         console.warn(`[hls_parser] Playlist ID ${playlistId} not found in state when adding segments.`);
-         state.mediaPlaylists[playlistId] = { url: baseUrl, content, segments: newSegments };
+        // Should not happen if playlist was added correctly before parsing
+        console.warn(`[hls_parser] Playlist ID ${playlistId} not found in state when adding segments.`);
+        state.mediaPlaylists[playlistId] = { url: baseUrl, content, segments: newSegments };
     }
 
 
@@ -443,19 +455,19 @@ function startPlaylistRefresh(url, playlistId) {
         console.log('[hls_parser] Cleared existing refresh interval.');
     }
 
-     // Determine refresh interval (use target duration if available, else default)
-     // HLS spec suggests half the target duration, but let's be slightly less aggressive
-     const refreshDelay = state.targetDuration ? Math.max(1000, state.targetDuration * 1000 * 0.7) : state.updateInterval;
-     console.log(`[hls_parser] Starting playlist refresh for ${getShortUrl(url)} every ${refreshDelay}ms (Playlist ID: ${playlistId})`);
+    // Determine refresh interval (use target duration if available, else default)
+    // HLS spec suggests half the target duration, but let's be slightly less aggressive
+    const refreshDelay = state.targetDuration ? Math.max(1000, state.targetDuration * 1000 * 0.7) : state.updateInterval;
+    console.log(`[hls_parser] Starting playlist refresh for ${getShortUrl(url)} every ${refreshDelay}ms (Playlist ID: ${playlistId})`);
 
 
     state.playlistRefreshInterval = setInterval(async () => {
         if (!state.isLive) { // Stop refreshing if ENDLIST was encountered
-             clearInterval(state.playlistRefreshInterval);
-             state.playlistRefreshInterval = null;
-             console.log('[hls_parser] Stopping refresh interval as stream is no longer live.');
-             return;
-         }
+            clearInterval(state.playlistRefreshInterval);
+            state.playlistRefreshInterval = null;
+            console.log('[hls_parser] Stopping refresh interval as stream is no longer live.');
+            return;
+        }
         try {
             const latestContent = await fetchManifest(url);
             const currentPlaylist = state.mediaPlaylists[playlistId];
@@ -464,13 +476,13 @@ function startPlaylistRefresh(url, playlistId) {
                 console.log(`[hls_parser] Playlist ${playlistId} updated. Reparsing.`);
                 currentPlaylist.content = latestContent; // Update content in state
                 parseMediaPlaylist(latestContent, url, playlistId); // Reparse
-                 dispatchPlaylistParsed('media', { id: playlistId, url, content: latestContent }); // Notify UI of update
+                dispatchPlaylistParsed('media', { id: playlistId, url, content: latestContent }); // Notify UI of update
             } else if (!currentPlaylist) {
-                 console.warn(`[hls_parser] Playlist ${playlistId} not found during refresh cycle.`);
-                 clearInterval(state.playlistRefreshInterval); // Stop if state is inconsistent
-             } else {
-                 // console.log(`[hls_parser] Playlist ${playlistId} unchanged.`);
-             }
+                console.warn(`[hls_parser] Playlist ${playlistId} not found during refresh cycle.`);
+                clearInterval(state.playlistRefreshInterval); // Stop if state is inconsistent
+            } else {
+                // console.log(`[hls_parser] Playlist ${playlistId} unchanged.`);
+            }
         } catch (err) {
             console.error(`[hls_parser] Error refreshing playlist ${playlistId}:`, err);
             dispatchStatusUpdate(`Error refreshing playlist: ${err.message}`);
@@ -507,21 +519,29 @@ function resolveUrl(relativeUrl, baseUrl) {
 }
 
 function getShortUrl(url, maxLength = 50) {
-     if (!url) return '';
-     if (url.length <= maxLength) return url;
-     try {
-         const parsed = new URL(url);
-         const pathParts = parsed.pathname.split('/').filter(Boolean);
-         const file = pathParts.pop() || '';
-         const domain = parsed.hostname;
-         return `${domain}/.../${file.substring(0,15)}${file.length > 15 ? '...' : ''}${parsed.search}`;
+    if (!url) return '';
+    if (url.length <= maxLength) return url;
+    try {
+        const parsed = new URL(url);
+        const pathParts = parsed.pathname.split('/').filter(Boolean);
+        const file = pathParts.pop() || '';
+        const domain = parsed.hostname;
+        return `${domain}/.../${file.substring(0, 15)}${file.length > 15 ? '...' : ''}${parsed.search}`;
 
-     } catch {
-         // Fallback if not a valid URL
-         return url.substring(0, maxLength / 2) + '...' + url.substring(url.length - maxLength / 2);
-     }
- }
+    } catch {
+        // Fallback if not a valid URL
+        return url.substring(0, maxLength / 2) + '...' + url.substring(url.length - maxLength / 2);
+    }
+}
 
+// ---- Global API ----
+window.metaviewAPI = window.metaviewAPI || {};
+window.metaviewAPI.hlsparser = window.metaviewAPI.hlsparser || {};
+
+// ResponseStatus function
+window.metaviewAPI.hlsparser.ResponseStatus = function() {
+    return state.lastHttpStatus;
+}; 
 
 // Make the init function globally accessible (or use modules later)
 window.HlsParser = {
