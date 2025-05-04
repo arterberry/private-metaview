@@ -223,7 +223,7 @@ document.addEventListener('DOMContentLoaded', () => {
             abrEwmaFastLive: 3,
             abrEwmaSlowLive: 9,
             startLevel: -1, // Auto start level
-            manifestLoadingTimeOut: 25000,
+            manifestLoadingTimeOut: 64000, // reduce buffer timeout 25K min
             manifestLoadingMaxRetry: 4,
             manifestLoadingRetryDelay: 1000,
             manifestLoadingMaxRetryTimeout: 64000,

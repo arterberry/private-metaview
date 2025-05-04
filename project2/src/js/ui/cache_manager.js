@@ -1,4 +1,5 @@
 // js/ui/cache_manager.js
+// Description: Cache Manager for displaying cache hit/miss statistics and TTL information.
 
 console.log('[cache_manager] Initializing...');
 

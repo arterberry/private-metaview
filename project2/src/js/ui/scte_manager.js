@@ -1,4 +1,5 @@
 // js/ui/scte_manager.js
+// Description: Originally developed for detecting SCTE-35 signal detection, it now can identify and manage identification of ad creatives.
 
 console.log('[scte_manager] Initializing...');
 

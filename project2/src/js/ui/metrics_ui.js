@@ -1,12 +1,13 @@
-// js/ui/qoe_ui.js
+// js/ui/metrics_ui.js
 
-console.log('[qoe_ui] Initializing QoE UI…');
+
+console.log('[metrics_ui] Initializing Metrics UI…');
 
 (function () {
 
-    console.log('[qoe_ui] IIFE running');
+    console.log('[metrics_ui] IIFE running');
 
-    // QoE state
+    // Metrics state
     const qoeData = {
         startTime: null,
         loadStart: null,
@@ -42,7 +43,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // DOM Ready Listener
     // -----------------------
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('[qoe_ui] DOMContentLoaded');
+        console.log('[metrics_ui] DOMContentLoaded');
         setupDetailTabs();
         updateQoEDisplay(); // Initial render with N/A values
     });
@@ -51,19 +52,19 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // HLS Player Loaded Listener (Crucial Fix Here)
     // -----------------------
     document.addEventListener('hlsLoaded', e => {
-        console.log('[qoe_ui] hlsLoaded event received');
+        console.log('[metrics_ui] hlsLoaded event received');
 
         // 1. Get the HLS instance directly from the event detail
         const hls = e.detail.hls;
 
         // 2. Check if the HLS instance exists
         if (!hls) {
-            console.error('[qoe_ui] hlsLoaded event fired, but no HLS instance found in e.detail.hls. Cannot attach listeners.');
+            console.error('[metrics_ui] hlsLoaded event fired, but no HLS instance found in e.detail.hls. Cannot attach listeners.');
             return; // Stop if no hls instance
         }
 
         // 3. If the HLS instance IS valid, call hookVideoAndHls and PASS the instance
-        console.log('[qoe_ui] HLS instance found, calling hookVideoAndHls...');
+        console.log('[metrics_ui] HLS instance found, calling hookVideoAndHls...');
         hookVideoAndHls(hls); // Pass the 'hls' instance as an argument
 
         // 4. Optional: Initial UI update (usually not needed as events trigger updates)
@@ -79,13 +80,13 @@ console.log('[qoe_ui] Initializing QoE UI…');
         // Select ONLY the tab container within the main qoe-tab pane
         const tabsContainer = document.querySelector('#qoe-tab .qoe-details-tabs'); 
         if (!tabsContainer) {
-            console.warn('[qoe_ui] Could not find QoE details tabs container.');
+            console.warn('[metrics_ui] Could not find QoE details tabs container.');
             return;
         }
         // Find the content container relative to the tabs
         const contentContainer = tabsContainer.nextElementSibling; 
         if (!contentContainer || !contentContainer.classList.contains('qoe-details-content')) {
-            console.warn('[qoe_ui] Could not find QoE details content container.');
+            console.warn('[metrics_ui] Could not find QoE details content container.');
             return;
         }
 
@@ -110,7 +111,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
             if (panel) {
                 panel.classList.add('active');
             } else {
-                console.warn(`[qoe_ui] Panel with ID ${panelId} not found.`);
+                console.warn(`[metrics_ui] Panel with ID ${panelId} not found.`);
             }
         });
     }
@@ -121,7 +122,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // Accepts the HLS instance as a parameter
     // -----------------------
     function hookVideoAndHls(hls) {
-        console.log('[qoe_ui] hookVideoAndHls called with HLS instance:', hls);
+        console.log('[metrics_ui] hookVideoAndHls called with HLS instance:', hls);
 
         // Listener for CDN info from other modules (if applicable)
         document.addEventListener('cdnInfoDetected', e => {
@@ -136,18 +137,18 @@ console.log('[qoe_ui] Initializing QoE UI…');
             if (stats && stats.tfirst > 0 && stats.trequest > 0 && stats.tfirst >= stats.trequest) {
                 const latencyMs = stats.tfirst - stats.trequest;
                 qoeData.playlistLatencies.push(latencyMs);
-                // console.log(`[qoe_ui] Playlist Latency (${eventName}): ${latencyMs.toFixed(0)} ms`); // Debug log
+                // console.log(`[metrics_ui] Playlist Latency (${eventName}): ${latencyMs.toFixed(0)} ms`); // Debug log
                 updateQoEDisplay(); // Update display after getting new latency data
             }
         };
 
         // --- Video Element Listeners ---
         if (video) {
-            console.log('[qoe_ui] Attaching video element listeners');
+            console.log('[metrics_ui] Attaching video element listeners');
             qoeData.startTime = performance.now();
             video.addEventListener('loadstart', () => {
                 qoeData.loadStart = performance.now();
-                addEvent('Video loadstart', 'startup');
+                addEvent('Video Load Started', 'startup');
                 updateQoEDisplay();
             });
             video.addEventListener('loadeddata', () => {
@@ -160,7 +161,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                 if (video.audioTracks && video.audioTracks.length > 0 && qoeData.audioTracks.length === 0) {
                     addEvent(`Detected ${video.audioTracks.length} native audio track(s) (might be muxed)`);
                 } else if (video.audioTracks && video.audioTracks.length === 0 && qoeData.audioTracks.length > 0 && qoeData.audioTracks[0]?.name?.includes('Inferred')) {
-                     console.log('[qoe_ui] Native video element reports NO audio tracks, but inferred track exists.');
+                     console.log('[metrics_ui] Native video element reports NO audio tracks, but inferred track exists.');
                 }
             });
             video.addEventListener('waiting', () => {
@@ -184,13 +185,13 @@ console.log('[qoe_ui] Initializing QoE UI…');
                 updateQoEDisplay();
             });
         } else {
-             console.error("[qoe_ui] Video element #hlsVideoPlayer not found!");
+             console.error("[metrics_ui] Video element #hlsVideoPlayer not found!");
         }
 
         // --- HLS.js Event Listeners ---
         // Ensure HLS instance is valid before attaching listeners
         if (hls && typeof hls.on === 'function') {
-            console.log('[qoe_ui] Attaching HLS.js event listeners');
+            console.log('[metrics_ui] Attaching HLS.js event listeners');
 
             hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
                 qoeData.qualitySwitches++;
@@ -213,7 +214,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                     } else if (qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0 && qoeData.audioTracks[0].codec !== newCodec) { // Update inferred track codec
                          qoeData.audioTracks[0].codec = newCodec;
                          qoeData.currentAudioCodec = newCodec;
-                         addEvent(`Inferred audio codec updated to ${newCodec}`, 'audio');
+                         addEvent(`Audio codec updated to ${newCodec}`, 'audio');
                     } else if (qoeData.currentAudioTrack !== null) { // Update codec of the currently active *explicit* track if it was unknown
                         const activeTrack = qoeData.audioTracks.find(t => t.id === qoeData.currentAudioTrack);
                         if (activeTrack && (!activeTrack.codec || activeTrack.codec === '?')) {
@@ -249,7 +250,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                     url: data.frag.url
                 };
                 qoeData.totalSegmentsRequested++;
-                // console.log(`[qoe_ui] FRAG_LOADING: SN=${data.frag.sn}, Req=${qoeData.totalSegmentsRequested}`); // Debug log
+                // console.log(`[metrics_ui] FRAG_LOADING: SN=${data.frag.sn}, Req=${qoeData.totalSegmentsRequested}`); // Debug log
                 updateQoEDisplay(); // Update success rate display immediately
             });
 
@@ -268,7 +269,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                 const bytes = data.stats.total;
 
                 qoeData.totalSegmentsLoaded++;
-                 // console.log(`[qoe_ui] FRAG_LOADED: SN=${data.frag.sn}, Loaded=${qoeData.totalSegmentsLoaded}, Time=${loadMs.toFixed(0)}ms`); // Debug log
+                 // console.log(`[metrics_ui] FRAG_LOADED: SN=${data.frag.sn}, Loaded=${qoeData.totalSegmentsLoaded}, Time=${loadMs.toFixed(0)}ms`); // Debug log
 
                 if (loadMs > 0) {
                     qoeData.segmentDownloadTimes.push(loadMs);
@@ -309,7 +310,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
             });
 
             hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
-                console.log('[qoe_ui] MANIFEST_PARSED');
+                console.log('[metrics_ui] MANIFEST_PARSED');
                 let explicitAudioTracksFound = false;
 
                 if (data.stats) {
@@ -394,7 +395,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
             });
 
             hls.on(Hls.Events.AUDIO_TRACKS_UPDATED, (_, data) => {
-                 console.log('[qoe_ui] AUDIO_TRACKS_UPDATED fired');
+                 console.log('[metrics_ui] AUDIO_TRACKS_UPDATED fired');
                  const previouslyInferred = qoeData.audioTracks.length === 1 && qoeData.audioTracks[0].id === 0;
 
                  if (data.audioTracks && data.audioTracks.length > 0) {
@@ -463,7 +464,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                     (data.details === Hls.ErrorDetails.FRAG_LOAD_ERROR ||
                         data.details === Hls.ErrorDetails.FRAG_LOAD_TIMEOUT)) {
                     qoeData.totalSegmentsFailed++;
-                    // console.log(`[qoe_ui] Segment network failure detected: ${data.details}, FailCount=${qoeData.totalSegmentsFailed}`);
+                    // console.log(`[metrics_ui] Segment network failure detected: ${data.details}, FailCount=${qoeData.totalSegmentsFailed}`);
                 }
                 // Check for Media Errors (like parsing) related to fragments
                 else if (data.type === Hls.ErrorTypes.MEDIA_ERROR &&
@@ -472,7 +473,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
                     data.context.type.toLowerCase() === 'fragment' && // Compare with string "fragment"
                     data.details === Hls.ErrorDetails.FRAG_PARSING_ERROR) {
                     qoeData.totalSegmentsFailed++;
-                    // console.log(`[qoe_ui] Segment parsing failure detected, FailCount=${qoeData.totalSegmentsFailed}`);
+                    // console.log(`[metrics_ui] Segment parsing failure detected, FailCount=${qoeData.totalSegmentsFailed}`);
                 }
                 // ***** END CORRECTION *****
 
@@ -498,7 +499,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
             // });
 
         } else {
-             console.error("[qoe_ui] HLS instance provided to hookVideoAndHls was invalid or missing 'on' method.");
+             console.error("[metrics_ui] HLS instance provided to hookVideoAndHls was invalid or missing 'on' method.");
         }
     } // End hookVideoAndHls
 
@@ -509,7 +510,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
     function renderQoS() {
         const container = document.getElementById('qosContainer');
         if (!container) {
-            // console.warn('[qoe_ui] QoS container not found'); // Only log once if needed
+            // console.warn('[metrics_ui] QoS container not found'); // Only log once if needed
             return;
         }
 
@@ -591,58 +592,134 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // -----------------------
     // CDN detection Logic
     // -----------------------
+    /**
+     * Detects the Content Delivery Network (CDN) based on response headers and URL.
+     * Prioritizes more specific header checks before broader ones or URL fallbacks.
+     *
+     * @param {string} url The URL of the resource.
+     * @param {Object<string, string>} [headers={}] The HTTP response headers.
+     * @returns {void} Updates qoeData.cdnProvider and logs changes.
+    */
     function detectCDN(url, headers = {}) {
+        // 1. Input Validation
         if (!url) return;
-        const u = url.toLowerCase();
-        let cdn = 'Unknown';
-        let currentCDN = qoeData.cdnProvider;
 
-        // Header checks (more reliable) - case-insensitive keys
+        // 2. Initialization
+        const u = url.toLowerCase();
+        let cdn = 'Unknown'; // Start with Unknown
+        // Assuming qoeData and addEvent are available in the scope
+        // let currentCDN = qoeData.cdnProvider; // Get current CDN before detection
+
+        // 3. Header Normalization (Case-Insensitive)
         const lowerCaseHeaders = {};
         for (const key in headers) {
-            if (Object.hasOwnProperty.call(headers, key)) {
-                lowerCaseHeaders[key.toLowerCase()] = headers[key];
+            // Ensure own properties and handle potential null/undefined headers object
+            if (headers && Object.hasOwnProperty.call(headers, key) && headers[key] != null) {
+                lowerCaseHeaders[key.toLowerCase()] = String(headers[key]); // Ensure value is string
             }
         }
 
-        if (lowerCaseHeaders['server']?.toLowerCase().includes('cloudflare') || lowerCaseHeaders['cf-ray'] || lowerCaseHeaders['cf-cache-status']) cdn = 'Cloudflare';
-        else if (lowerCaseHeaders['x-amz-cf-id'] || lowerCaseHeaders['x-amz-cf-pop'] || lowerCaseHeaders['x-cache']?.includes('cloudfront')) cdn = 'CloudFront';
-        else if (lowerCaseHeaders['server']?.toLowerCase().includes('awselb')) cdn = 'AWS ELB/CloudFront';
-        else if ((lowerCaseHeaders['x-served-by'] && lowerCaseHeaders['x-served-by'].includes('cache-')) || lowerCaseHeaders['x-fastly-backend-reqs']) cdn = 'Fastly';
-        else if (lowerCaseHeaders['server']?.toLowerCase().startsWith('ecs') || lowerCaseHeaders['x-ec-debug']) cdn = 'Verizon (Edgecast)';
-        else if (lowerCaseHeaders['server']?.toLowerCase().includes('gse') || lowerCaseHeaders['via']?.includes('google')) cdn = 'Google Cloud CDN';
-        else if (lowerCaseHeaders['x-hw']?.length > 0) cdn = 'Highwinds (StackPath)';
-        else if (lowerCaseHeaders['x-cdn']?.toLowerCase().includes('imperva') || lowerCaseHeaders['x-iinfo'] || lowerCaseHeaders['x-powered-by-nitrosell']) cdn = 'Imperva';
-        else if (lowerCaseHeaders['server']?.toLowerCase().includes('akamai') || lowerCaseHeaders['x-akamai-request-id'] || lowerCaseHeaders['x-cache']?.includes('from AkamaiGHost')) cdn = 'Akamai';
-        else if (lowerCaseHeaders['x-ll-cache-action']) cdn = 'Limelight (Edgio)';
-        else if (lowerCaseHeaders['server']?.toLowerCase().includes('keycdn')) cdn = 'KeyCDN'; // Example addition
+        // 4. CDN Detection based on Headers (Prioritize Specificity)
+        // Use a single if/else if chain to ensure only one CDN is detected via headers.
+        // Order checks from most specific/reliable to less specific.
+
+        // Cloudflare (very specific headers)
+        if (lowerCaseHeaders['cf-ray'] || lowerCaseHeaders['cf-cache-status'] || lowerCaseHeaders['server']?.toLowerCase().includes('cloudflare')) {
+            cdn = 'Cloudflare';
+        }
+        // Akamai (very specific headers first)
+        else if (lowerCaseHeaders['x-cdn']?.toLowerCase().includes('akamai') || // Very specific
+            lowerCaseHeaders['x-akamai-request-id'] ||                    // Very specific
+            lowerCaseHeaders['akamai-request-bc'] ||                       // Specific (from your example)
+            lowerCaseHeaders['akamai-mon-iucid-del'] ||                   // Specific (from your example)
+            lowerCaseHeaders['server']?.toLowerCase().includes('akamai') ||
+            lowerCaseHeaders['x-cache']?.includes('from AkamaiGHost')) {
+            cdn = 'Akamai';
+        }
+        // CloudFront (very specific headers)
+        else if (lowerCaseHeaders['x-amz-cf-id'] || lowerCaseHeaders['x-amz-cf-pop'] || lowerCaseHeaders['x-cache']?.includes('cloudfront')) {
+            cdn = 'CloudFront';
+        }
+        // Fastly (specific header first)
+        else if (lowerCaseHeaders['x-fastly-backend-reqs'] ||
+            (lowerCaseHeaders['x-served-by'] && lowerCaseHeaders['x-served-by'].includes('cache-'))) { // Keep x-served-by but after Akamai check
+            cdn = 'Fastly';
+        }
+        // Verizon / Edgecast (specific headers)
+        else if (lowerCaseHeaders['x-ec-debug'] || lowerCaseHeaders['server']?.toLowerCase().startsWith('ecs')) {
+            cdn = 'Verizon (Edgecast)';
+        }
+        // Imperva (specific headers)
+        else if (lowerCaseHeaders['x-cdn']?.toLowerCase().includes('imperva') || lowerCaseHeaders['x-iinfo']) {
+            cdn = 'Imperva';
+        }
+        // Google Cloud CDN (specific header)
+        else if (lowerCaseHeaders['via']?.includes('google') || lowerCaseHeaders['server']?.toLowerCase().includes('gse')) {
+            cdn = 'Google Cloud CDN';
+        }
+        // Limelight / Edgio (specific header)
+        else if (lowerCaseHeaders['x-ll-cache-action']) {
+            cdn = 'Limelight (Edgio)';
+        }
+        // Highwinds / StackPath (specific header)
+        else if (lowerCaseHeaders['x-hw']?.length > 0) { // Check length as it might be empty
+            cdn = 'Highwinds (StackPath)';
+        }
+        // KeyCDN (specific server header)
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('keycdn')) {
+            cdn = 'KeyCDN';
+        }
+        // AWS ELB / potentially CloudFront (less specific, check later)
+        // Note: Might overlap with CloudFront if CF headers aren't present but ELB is used.
+        else if (lowerCaseHeaders['server']?.toLowerCase().includes('awselb')) {
+            cdn = 'AWS ELB/CloudFront'; // Could be ELB in front of anything, or CF itself
+        }
+        // Add other specific header checks here...
 
 
-        // URL checks (fallback)
+        // 5. URL Fallback Checks (Only if Headers Didn't Identify a CDN)
         if (cdn === 'Unknown') {
-            if (u.includes('akamaized.net') || u.includes('akamaihd.net') || u.includes('akamaitechnologies') || u.includes('edgekey.net') || u.includes('edgesuite.net')) cdn = 'Akamai';
-            else if (u.includes('llnwd.net') || u.includes('limelight')) cdn = 'Limelight (Edgio)';
-            else if (u.includes('fastly')) cdn = 'Fastly';
-            else if (u.includes('cloudfront.net')) cdn = 'CloudFront';
-            else if (u.includes('cloudflare')) cdn = 'Cloudflare';
-            else if (u.includes('level3.net') || u.includes('lumen.com')) cdn = 'Lumen (Level 3)';
-            else if (u.includes('edgecastcdn.net') || u.includes('cedexis.com')) cdn = 'Verizon (Edgecast)';
-            else if (u.includes('hwcdn.net')) cdn = 'Highwinds (StackPath)';
-            else if (u.includes('azioncdn.net')) cdn = 'Azion';
-            else if (u.includes('cdnetworks.net')) cdn = 'CDNetworks';
-            else if (u.includes('incapdns.net')) cdn = 'Imperva';
-            else if (u.includes('keycdn.com')) cdn = 'KeyCDN'; // Example addition
-            else if (u.includes('qwilt')) cdn = 'Qwilt';
-            else if (u.includes('jsdelivr.net')) cdn = 'jsDelivr';
+            if (u.includes('.akamaized.net') || u.includes('.akamaihd.net') || u.includes('akamaitechnologies.com') || u.includes('.edgekey.net') || u.includes('.edgesuite.net')) cdn = 'Akamai';
+            else if (u.includes('.llnwd.net') || u.includes('limelight.com')) cdn = 'Limelight (Edgio)';
+            else if (u.includes('.fastly') || u.includes('fastly.net')) cdn = 'Fastly'; // Added .net
+            else if (u.includes('.cloudfront.net')) cdn = 'CloudFront';
+            else if (u.includes('cloudflare.com') || u.includes('cloudflare.net')) cdn = 'Cloudflare'; // Added .net
+            else if (u.includes('.level3.net') || u.includes('.lumen.com')) cdn = 'Lumen (Level 3)';
+            else if (u.includes('.edgecastcdn.net') || u.includes('.cedexis.com')) cdn = 'Verizon (Edgecast)';
+            else if (u.includes('.hwcdn.net')) cdn = 'Highwinds (StackPath)';
+            else if (u.includes('.azioncdn.net') || u.includes('.azion.net')) cdn = 'Azion'; // Added .net
+            else if (u.includes('.cdnetworks.net') || u.includes('cdnetworks.com')) cdn = 'CDNetworks';
+            else if (u.includes('.incapdns.net')) cdn = 'Imperva';
+            else if (u.includes('.keycdn.com')) cdn = 'KeyCDN';
+            else if (u.includes('qwilt')) cdn = 'Qwilt'; // Domain might vary
+            else if (u.includes('.jsdelivr.net')) cdn = 'jsDelivr';
+            // Add other URL checks here...
         }
 
+        // 6. Update State and Log Changes
+        // Ensure qoeData and addEvent are accessible in this scope
+        if (typeof qoeData !== 'undefined' && typeof addEvent === 'function') {
+            let currentCDN = qoeData.cdnProvider; // Get current CDN *before* potentially updating it
 
-        // Update only if CDN changed from Unknown or changed to a different known CDN
-        if (cdn !== 'Unknown' && cdn !== currentCDN) {
-            qoeData.cdnProvider = cdn;
-            addEvent(`CDN detected: ${cdn}`, 'cdn');
-            // No need to call updateQoEDisplay here, FRAG_LOADED (which usually calls this) already does
+            // Update only if CDN was identified (not 'Unknown') AND it's different from the current stored CDN
+            if (cdn !== 'Unknown' && cdn !== currentCDN) {
+                console.log(`CDN detected: ${cdn} (Previous: ${currentCDN}). Updating state.`); // Added detail for debugging
+                qoeData.cdnProvider = cdn;
+                addEvent(`CDN detected: ${cdn}`, 'cdn');
+                // No need to call updateQoEDisplay here if FRAG_LOADED handles it
+            } else if (cdn !== 'Unknown' && cdn === currentCDN) {
+                // Optional: Log if detection matches current state, useful for debugging repeated calls
+                // console.log(`CDN reaffirmed: ${cdn}`);
+            } else if (cdn === 'Unknown') {
+                // Optional: Log if no CDN was detected
+                // console.log(`CDN detection resulted in 'Unknown' for URL: ${url}`);
+            }
+        } else {
+            console.warn("qoeData or addEvent not available in detectCDN scope.");
         }
+
+        // Optional: Return the detected CDN name
+        // return cdn;
     }
 
 
@@ -650,7 +727,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
     // Update all UI pieces
     // -----------------------
     function updateQoEDisplay() {
-       // console.log('[qoe_ui] updateQoEDisplay called'); // Frequent log, uncomment for deep debugging
+       // console.log('[metrics_ui] updateQoEDisplay called'); // Frequent log, uncomment for deep debugging
 
         // Update main playback metrics
         const rows = [
@@ -667,7 +744,7 @@ console.log('[qoe_ui] Initializing QoE UI…');
         rows.forEach(([id, val]) => {
             const el = document.getElementById(id);
             if (el) el.textContent = val !== null && val !== undefined ? val : 'N/A';
-            // else console.warn(`[qoe_ui] Element not found for metric: ${id}`); // Debug log
+            // else console.warn(`[metrics_ui] Element not found for metric: ${id}`); // Debug log
         });
 
         // Update detail tab panels
@@ -799,6 +876,116 @@ console.log('[qoe_ui] Initializing QoE UI…');
         document.getElementById('latency').textContent = avgLat !== null ? `${avgLat.toFixed(0)} ms` : 'N/A';
     }
 
+    // ===============================
+    // === metaviewAPI Testing API ===
+    // ===============================
+   
+    if (!window.metaviewAPI) window.metaviewAPI = {};
+
+    const metrics = { 
+
+        /**
+         * Returns a shallow copy of the entire qoeData object for inspection.
+         */
+        getQoEState: function () {
+            return { ...qoeData };
+        },
+
+        /**
+         * Returns the latest detected video bitrate (in bps) or null if unknown.
+         */
+        getCurrentBitrate: function () {
+            return qoeData.currentBitrate;
+        },
+
+        /**
+         * Returns the latest detected video resolution string (e.g., "1920x1080") or null if unknown.
+         */
+        getCurrentResolution: function () {
+            return qoeData.currentResolution;
+        },
+
+        /**
+         * Returns current audio track object with id, name, language, codec properties, or null if no active track.
+         */
+        getCurrentAudioTrack: function () {
+            if (qoeData.currentAudioTrack != null) {
+                return qoeData.audioTracks.find(t => t.id === qoeData.currentAudioTrack) || null;
+            }
+            return null;
+        },
+
+        /**
+         * Returns an object with total segments requested, loaded, and failed counts.
+         */
+        getSegmentCounters: function () {
+            return {
+                requested: qoeData.totalSegmentsRequested,
+                loaded: qoeData.totalSegmentsLoaded,
+                failed: qoeData.totalSegmentsFailed
+            };
+        },
+
+        /**
+         * Returns the average segment download time in milliseconds, or null if no data.
+         */
+        getAverageSegmentDownloadTime: function () {
+            const arr = qoeData.segmentDownloadTimes;
+            if (!arr || arr.length === 0) return null;
+            const valid = arr.filter(n => typeof n === 'number' && isFinite(n));
+            if (valid.length === 0) return null;
+            return valid.reduce((a, b) => a + b, 0) / valid.length;
+        },
+
+        /**
+         * Returns the average throughput in bits per second, or null if no data.
+         */
+        getAverageThroughput: function () {
+            const arr = qoeData.throughput;
+            if (!arr || arr.length === 0) return null;
+            const valid = arr.filter(n => typeof n === 'number' && isFinite(n));
+            if (valid.length === 0) return null;
+            return valid.reduce((a, b) => a + b, 0) / valid.length;
+        },
+
+        /**
+         * Returns the currently detected CDN provider string.
+         */
+        getCDN: function () {
+            return qoeData.cdnProvider;
+        },
+
+        /**
+         * Returns the event history array (max 100 entries), each entry includes {time, msg, type}.
+         */
+        getEventHistory: function () {
+            return qoeData.eventHistory.slice(); // shallow copy to prevent external mutation
+        }        
+    };
+
+    // Assign the temp variable and then Freeze
+    window.metaviewAPI.metrics = metrics;
+    
+
+    console.log('[metrics_ui] metaviewAPI.metrics defined.'); 
+
 })(); // End IIFE
 
-console.log('[qoe_ui] QoE UI script finished.');
+console.log('[metrics_ui] Metrics UI script finished.');
+
+console.log('[metrics_ui] IIFE finished.'); 
+console.log('[metrics_ui] Checking metaviewAPI:', window.metaviewAPI); 
+console.log('[metrics_ui] Checking metrics:', window.metaviewAPI.metrics);
+console.log('[metrics_ui] Checking getQoEState:', window.metaviewAPI.metrics.getQoEState);
+console.log('[metrics_ui] Checking getCurrentBitrate:', window.metaviewAPI.metrics.getCurrentBitrate);
+console.log('[metrics_ui] Checking getCurrentResolution:', window.metaviewAPI.metrics.getCurrentResolution);
+console.log('[metrics_ui] Checking getCurrentAudioTrack:', window.metaviewAPI.metrics.getCurrentAudioTrack);
+console.log('[metrics_ui] Checking getSegmentCounters:', window.metaviewAPI.metrics.getSegmentCounters);
+console.log('[metrics_ui] Checking getAverageSegmentDownloadTime:', window.metaviewAPI.metrics.getAverageSegmentDownloadTime);
+console.log('[metrics_ui] Checking getAverageThroughput:', window.metaviewAPI.metrics.getAverageThroughput);
+console.log('[metrics_ui] Checking getCDN:', window.metaviewAPI.metrics.getCDN);
+console.log('[metrics_ui] Checking getEventHistory:', window.metaviewAPI.metrics.getEventHistory);
+console.log('[metrics_ui] Script loaded and ready.');
+
+
+
