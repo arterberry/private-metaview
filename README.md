@@ -20,10 +20,13 @@ HLS MetaView is a Chrome extension that allows you to analyze and play HLS (HTTP
 ### From Source
 
 1. Clone or download this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable "Developer mode" using the toggle in the top-right corner
-4. Click "Load unpacked" and select the extension directory
-5. The extension icon should appear in your Chrome toolbar
+2. Use the ```./build.sh``` script to build the extension.
+3. This will create the ```/dist``` directory.
+4. Open Chrome and navigate to `chrome://extensions/`
+5. Enable "Developer mode" using the toggle in the top-right corner
+6. Click "Load unpacked" and select the extension directory
+7. Select the content in the ```/dist``` directory.
+8. The extension icon should appear in your Chrome toolbar. You can PIN this if needed.
 
 ## Usage
 
@@ -42,10 +45,10 @@ The Playback Helper provides:
 
 ## Development
 
-### Project Structure
+### Project Structure (after using build.sh)
 
 ```
-hls-metaview/
+PARENT DIR/DIST/
 ├── background.js     # Background service worker
 ├── helper.html       # Playback helper popup
 ├── helper.js         # Helper popup functionality
@@ -56,25 +59,6 @@ hls-metaview/
 ├── popup.html        # Main extension interface
 ├── popup.js          # Main functionality
 └── styles.css        # Extension styling
-```
-
-### Running Tests
-
-This project uses Jest for testing. To run tests:
-
-1. Install dependencies:
-```
-npm install
-```
-
-2. Run tests:
-```
-npm test
-```
-
-3. Run tests with coverage:
-```
-npm run test:coverage
 ```
 
 ### Key Functionality
